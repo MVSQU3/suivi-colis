@@ -19,7 +19,7 @@ export default function Dashboard() {
     <div className="space-y-4">
       <div className="flex items-center justify-between"><h1 className="text-xl font-bold">{me?.tenant.name ?? 'Tableau de bord'}</h1>
         <button className="text-sm text-alerte" onClick={() => { setToken(null); window.location.href = '/connexion'; }}>Déconnexion</button></div>
-      {stats && <div className="grid grid-cols-3 gap-2">{[['Colis', stats.colis], ['Lots', stats.lots], ['Clients', stats.clients]].map(([k, v]) => <div key={k} className="card text-center"><p className="text-2xl font-bold">{v}</p><p className="text-sm text-gris">{k}</p></div>)}</div>}
+      {stats && <div className="grid grid-cols-3 gap-2">{[['Colis', stats.colis], ['Lots', stats.lots], ['Clients', stats.clients]].map(([k, v]) => <div key={k} className="card text-center"><p className="text-2xl font-bold">{v}</p><p className="text-sm text-gris-texte">{k}</p></div>)}</div>}
       {stats && <div className="card text-sm">{Object.entries(stats.parStatut).map(([s, n]) => <span key={s} className="mr-3">{libelleStatut(s)} : <b>{n}</b></span>)}</div>}
       <div className="card"><h2 className="mb-2 font-bold">Lots</h2>
         <ul className="divide-y">{lots.map((l) => <li key={l.id} className="flex flex-wrap items-center justify-between gap-2 py-2"><Link className="text-info" href={`/tableau-de-bord/lots/${l.id}`}>{l.reference}</Link><span className="text-sm">{l.mode === 'MER' ? '🚢' : '✈️'} {l.nbColis} colis</span><Badge statut={l.dernierStatut} /></li>)}</ul></div>

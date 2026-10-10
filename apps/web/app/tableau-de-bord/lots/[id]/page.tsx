@@ -9,7 +9,7 @@ export default function LotPage({ params }: { params: { id: string } }) {
   const [d, setD] = useState<Detail | null>(null); const [msg, setMsg] = useState<string | null>(null);
   const load = useCallback(() => api<Detail>(`/lots/${params.id}`).then(setD).catch(() => setMsg('Lot introuvable.')), [params.id]);
   useEffect(() => { void load(); }, [load]);
-  if (!d) return <p className="text-gris">{msg ?? 'Chargement…'}</p>;
+  if (!d) return <p className="text-gris-texte">{msg ?? 'Chargement…'}</p>;
   return (
     <div className="space-y-4">
       <div className="card"><h1 className="text-xl font-bold">Lot {d.reference}</h1><p>{d.mode === 'MER' ? '🚢 Maritime' : '✈️ Aérien'} · {d.colis.length} colis</p></div>

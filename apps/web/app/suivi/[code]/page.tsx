@@ -17,13 +17,13 @@ export default function PageSuivi({ params }: { params: { code: string } }) {
         : 'Code introuvable. Vérifie le code de suivi transmis par ton transitaire.'));
   }, [params.code]);
   if (erreur) return <div className="card text-center"><p className="font-semibold">{erreur}</p><a className="mt-3 inline-block text-info" href="/">Nouvelle recherche</a></div>;
-  if (!data) return <p className="text-gris">Chargement…</p>;
+  if (!data) return <p className="text-gris-texte">Chargement…</p>;
   const etape = data.statutActuel ? STATUT_META[data.statutActuel.statut as StatutCheckpoint]?.etape ?? 0 : 0;
   const partage = `https://wa.me/?text=${encodeURIComponent(`Suivi de mon colis ${data.code} : ${typeof window !== 'undefined' ? window.location.href : ''}`)}`;
   return (
     <div className="space-y-4">
       <div className="card" style={{ borderTop: `6px solid ${data.transitaire.couleur ?? '#F77F00'}` }}>
-        <p className="text-sm text-gris">{data.transitaire.nom}</p>
+        <p className="text-sm text-gris-texte">{data.transitaire.nom}</p>
         <h1 className="text-xl font-bold">Colis {data.code}</h1>
         <p className="mb-2">{data.mode === 'MER' ? '🚢 Maritime' : '✈️ Aérien'} · {data.cartons} carton(s) · {data.description}</p>
         <div className="text-lg"><Badge statut={data.statutActuel?.statut ?? null} /></div>
