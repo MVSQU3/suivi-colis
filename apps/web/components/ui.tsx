@@ -2,7 +2,8 @@ import { STATUT_META, formatDate, type StatutCheckpoint } from '@suivi-colis/sha
 export function Badge({ statut }: { statut: string | null }) {
   if (!statut) return <span className="text-gris-texte">—</span>;
   const m = STATUT_META[statut as StatutCheckpoint];
-  return <span className="inline-block rounded-full px-2 py-0.5 text-xs font-semibold text-white" style={{ background: m?.couleur ?? '#8D99AE' }}>{m?.libelle ?? statut}</span>;
+  const s = badgeStyle(m?.couleur);
+  return <span className="inline-block rounded-full px-2 py-0.5 text-xs font-semibold" style={s}>{m?.libelle ?? statut}</span>;
 }
 export interface TimelineItem { date: string; lieu: string; statut: string; libelle: string; commentaire?: string | null }
 export function Timeline({ items }: { items: TimelineItem[] }) {
@@ -19,4 +20,12 @@ export function Timeline({ items }: { items: TimelineItem[] }) {
       ))}
     </ol>
   );
+}
+
+// Contraste AA (>= 4,5:1) : texte fonce sur orange/bleu, vert assombri pour texte blanc, blanc sur fonce/rouge.
+function badgeStyle(couleur?: string): { background: string; color: string } {
+  const c = (couleur ?? '').toUpperCase();
+  if (c === '#009E60') return { background: '#007A4A', color: '#FFFFFF' };
+  if (c === '#0B2545' || c === '#D62828') return { background: c, color: '#FFFFFF' };
+  return { background: couleur ?? '#8D99AE', color: '#0B2545' };
 }
