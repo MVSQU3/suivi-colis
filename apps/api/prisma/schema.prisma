@@ -1,0 +1,147 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  OWNER
+  AGENT
+}
+
+enum ModeTransport {
+  MER
+  AIR
+}
+
+enum StatutCheckpoint {
+  RECU_ENTREPOT_CHINE
+  CHARGE_DANS_LOT
+  PARTI_DE_CHINE
+  ARRIVE_ABIDJAN
+  EN_DEDOUANEMENT
+  DISPONIBLE_AU_RETRAIT
+  REMIS_AU_CLIENT
+  EXCEPTION
+}
+
+model Tenant {
+  id           String   @id @default(cuid())
+  name         String
+  slug         String   @unique
+  phone        String?
+  primaryColor String?  @default("#F77F00")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  users        User[]
+  clients      Client[]
+  lots         Lot[]
+  colis        Colis[]
+}
+
+model User {
+  id           String    @id @default(cuid())
+  tenantId     String
+  tenant       Tenant    @relation(fields: [tenantId], references: [id])
+  email        String    @unique
+  passwordHash String
+  fullName     String
+  role         UserRole
+  isActive     Boolean   @default(true)
+  failedLogins Int       @default(0)
+  lockedUntil  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([tenantId])
+}
+
+model Client {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  fullName  String
+  phone     String
+  email     String?
+  city      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  colis     Colis[]
+
+  @@unique([tenantId, phone])
+  @@index([tenantId])
+}
+
+model Lot {
+  id           String           @id @default(cuid())
+  tenantId     String
+  tenant       Tenant           @relation(fields: [tenantId], references: [id])
+  reference    String
+  mode         ModeTransport
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  affectations AffectationLot[]
+  checkpoints  Checkpoint[]
+
+  @@unique([tenantId, reference])
+  @@index([tenantId])
+}
+
+model Colis {
+  id           String           @id @default(cuid())
+  tenantId     String
+  tenant       Tenant           @relation(fields: [tenantId], references: [id])
+  clientId     String
+  client       Client           @relation(fields: [clientId], references: [id])
+  trackingCode String           @unique
+  description  String
+  cartons      Int              @default(1)
+  mode         ModeTransport
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  affectations AffectationLot[]
+  checkpoints  Checkpoint[]
+
+  @@index([tenantId])
+}
+
+/// Période d'appartenance d'un colis à un lot : [debut, fin[ ; fin null = affectation ouverte.
+/// Index unique partiel (une seule affectation ouverte par colis) ajouté en SQL dans la migration.
+model AffectationLot {
+  id       String    @id @default(cuid())
+  tenantId String
+  colisId  String
+  colis    Colis     @relation(fields: [colisId], references: [id])
+  lotId    String
+  lot      Lot       @relation(fields: [lotId], references: [id])
+  debut    DateTime
+  fin      DateTime?
+
+  @@index([tenantId])
+  @@index([colisId])
+  @@index([lotId])
+}
+
+/// Checkpoint append-only : cible soit un lot (lotId), soit un colis (colisId).
+model Checkpoint {
+  id          String           @id @default(cuid())
+  tenantId    String
+  lotId       String?
+  lot         Lot?             @relation(fields: [lotId], references: [id])
+  colisId     String?
+  colis       Colis?           @relation(fields: [colisId], references: [id])
+  statut      StatutCheckpoint
+  lieu        String
+  commentaire String?
+  date        DateTime
+  createdById String?
+  createdAt   DateTime         @default(now())
+
+  @@index([tenantId])
+  @@index([lotId, date])
+  @@index([colisId, date])
+}

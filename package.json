@@ -1,0 +1,17 @@
+{
+  "name": "suivi-colis",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm -r --parallel dev",
+    "build": "pnpm --filter @suivi-colis/shared build && pnpm --filter api build && pnpm --filter web build",
+    "test": "pnpm --filter api test",
+    "env:setup": "node scripts/setup-env.mjs",
+    "db:generate": "pnpm --filter api exec prisma generate",
+    "db:migrate": "pnpm --filter api exec prisma migrate dev",
+    "db:deploy": "pnpm --filter api exec prisma migrate deploy",
+    "db:seed": "pnpm --filter api seed",
+    "db:reset": "pnpm --filter api exec prisma migrate reset",
+    "db:studio": "pnpm --filter api exec prisma studio",
+    "backup:db": "node scripts/backup-db.mjs"
+  }
+}
