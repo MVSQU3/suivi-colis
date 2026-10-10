@@ -1,4 +1,4 @@
-import { IsEmail, IsEnum, IsInt, IsISO8601, IsOptional, IsString, Matches, Min, MinLength, ValidateIf, IsArray, ArrayNotEmpty } from 'class-validator';
+import { IsEmail, IsEnum, IsInt, IsISO8601, IsOptional, IsString, Matches, Min, MinLength, ValidateIf, IsArray, ArrayNotEmpty, IsIn } from 'class-validator';
 import { StatutCheckpoint, ModeTransport } from '@prisma/client';
 
 export class LoginDto { @IsEmail() email: string; @IsString() @MinLength(1) password: string }
@@ -24,3 +24,10 @@ export class CheckpointDto {
   @IsOptional() @IsISO8601() date?: string;
 }
 export class AffecterDto { @IsArray() @ArrayNotEmpty() @IsString({ each: true }) colisIds: string[] }
+
+export class InviteUserDto {
+  @IsEmail() email: string;
+  @IsString() @MinLength(2) fullName: string;
+  @IsIn(['OWNER', 'AGENT']) role: 'OWNER' | 'AGENT';
+  @IsString() @MinLength(12) password: string;
+}
