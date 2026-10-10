@@ -5,6 +5,15 @@ import { mergeHistory } from './history';
 import { generateTrackingCode } from './tracking-code';
 import { CheckpointDto, CreateColisDto } from './dto';
 
+/** Tolerance d'horloge : une date de checkpoint ne peut pas depasser maintenant + 2 min. */
+const TOLERANCE_FUTUR_MS = 2 * 60_000;
+function dateCheckpoint(raw?: string): Date {
+  const d = raw ? new Date(raw) : new Date();
+  if (Number.isNaN(d.getTime())) throw new BadRequestException('Date invalide');
+  if (d.getTime() > Date.now() + TOLERANCE_FUTUR_MS) throw new BadRequestException('La date du checkpoint ne peut pas etre dans le futur');
+  return d;
+}
+
 @Injectable()
 export class ColisService {
   constructor(private prisma: PrismaService) {}
@@ -21,10 +30,28 @@ export class ColisService {
   }
 
   async statutActuel(colisId: string) {
-    const h = await this.history(colisId);
-    return h.length ? h[h.length - 1].statut : null;
+    return (await this.statutsActuels([colisId])).get(colisId) ?? null;
   }
 
+  /** Statut courant de plusieurs colis en 3 requetes au total, quel que soit leur nombre. */
+  async statutsActuels(colisIds: string[]): Promise<Map<string, string | null>> {
+    const res = new Map<string, string | null>(colisIds.map((id) => [id, null]));
+    if (!colisIds.length) return res;
+    const [own, affectations] = await Promise.all([
+      this.prisma.checkpoint.findMany({ where: { colisId: { in: colisIds } } }),
+      this.prisma.affectationLot.findMany({ where: { colisId: { in: colisIds } } }),
+    ]);
+    const lotIds = [...new Set(affectations.map((a) => a.lotId))];
+    const lotCps = lotIds.length ? await this.prisma.checkpoint.findMany({ where: { lotId: { in: lotIds } } }) : [];
+    const group = <T,>(xs: T[], k: (x: T) => string | null) => { const m = new Map<string, T[]>(); for (const x of xs) { const key = k(x); if (key) m.set(key, [...(m.get(key) ?? []), x]); } return m; };
+    const ownBy = group(own, (c) => c.colisId), affBy = group(affectations, (a) => a.colisId), lotBy = group(lotCps, (c) => c.lotId);
+    for (const id of colisIds) {
+      const affs = affBy.get(id) ?? [];
+      const h = mergeHistory(ownBy.get(id) ?? [], affs, [...new Set(affs.map((a) => a.lotId))].flatMap((l) => lotBy.get(l) ?? []));
+      res.set(id, h.length ? h[h.length - 1].statut : null);
+    }
+    return res;
+  }
   async getOwned(tenantId: string, id: string) {
     const c = await this.prisma.colis.findFirst({ where: { id, tenantId }, include: { client: true, affectations: { include: { lot: true }, orderBy: { debut: 'asc' } } } });
     if (!c) throw new NotFoundException('Colis introuvable');
@@ -48,7 +75,7 @@ export class ColisService {
   async addCheckpoint(tenantId: string, userId: string, id: string, dto: CheckpointDto) {
     await this.getOwned(tenantId, id);
     if (dto.statut === 'EXCEPTION' && !dto.commentaire?.trim()) throw new BadRequestException('Un commentaire est obligatoire pour une exception');
-    return this.prisma.checkpoint.create({ data: { tenantId, colisId: id, statut: dto.statut, lieu: dto.lieu, commentaire: dto.commentaire, date: dto.date ? new Date(dto.date) : new Date(), createdById: userId } });
+    return this.prisma.checkpoint.create({ data: { tenantId, colisId: id, statut: dto.statut, lieu: dto.lieu, commentaire: dto.commentaire, date: dateCheckpoint(dto.date), createdById: userId } });
   }
 
   /** Affecte (ou transfère) des colis au lot : ferme l'affectation ouverte puis en ouvre une nouvelle, en transaction. */
@@ -82,7 +109,7 @@ export class ColisService {
     const lot = await this.prisma.lot.findFirst({ where: { id: lotId, tenantId } });
     if (!lot) throw new NotFoundException('Lot introuvable');
     if (dto.statut === 'EXCEPTION') throw new BadRequestException('Une exception se déclare sur un colis, pas sur un lot');
-    const date = dto.date ? new Date(dto.date) : new Date();
+    const date = dateCheckpoint(dto.date);
     const checkpoint = await this.prisma.checkpoint.create({ data: { tenantId, lotId, statut: dto.statut, lieu: dto.lieu, commentaire: dto.commentaire, date, createdById: userId } });
     const updatedCount = await this.prisma.affectationLot.count({ where: { lotId, debut: { lte: date }, OR: [{ fin: null }, { fin: { gt: date } }] } });
     return { checkpointId: checkpoint.id, updatedCount };

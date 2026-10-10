@@ -45,7 +45,8 @@ export class BackOfficeController {
       this.prisma.colis.findMany({ where: { tenantId }, select: { id: true } }),
     ]);
     const parStatut: Record<string, number> = {};
-    for (const c of colis) { const s = (await this.colis.statutActuel(c.id)) ?? 'AUCUN'; parStatut[s] = (parStatut[s] ?? 0) + 1; }
+    const statuts = await this.colis.statutsActuels(colis.map((c) => c.id));
+    for (const s0 of statuts.values()) { const s = s0 ?? 'AUCUN'; parStatut[s] = (parStatut[s] ?? 0) + 1; }
     return { clients, lots, colis: colis.length, parStatut };
   }
 
@@ -63,7 +64,8 @@ export class BackOfficeController {
 
   @Get('colis') async listColis(@TenantId() tenantId: string) {
     const list = await this.prisma.colis.findMany({ where: { tenantId }, include: { client: true, affectations: { where: { fin: null }, include: { lot: true } } }, orderBy: { createdAt: 'desc' } });
-    return Promise.all(list.map(async (c) => ({ id: c.id, trackingCode: c.trackingCode, description: c.description, mode: c.mode, client: c.client.fullName, lot: c.affectations[0]?.lot.reference ?? null, statutActuel: await this.colis.statutActuel(c.id) })));
+    const statuts = await this.colis.statutsActuels(list.map((c) => c.id));
+    return list.map((c) => ({ id: c.id, trackingCode: c.trackingCode, description: c.description, mode: c.mode, client: c.client.fullName, lot: c.affectations[0]?.lot.reference ?? null, statutActuel: statuts.get(c.id) ?? null }));
   }
   @Post('colis') createColis(@TenantId() tenantId: string, @Body() dto: CreateColisDto) { return this.colis.create(tenantId, dto); }
   @Get('colis/:id') async getColis(@TenantId() tenantId: string, @Param('id') id: string) {
@@ -84,7 +86,7 @@ export class BackOfficeController {
     const l = await this.prisma.lot.findFirst({ where: { id, tenantId }, include: { checkpoints: { orderBy: { date: 'asc' } }, affectations: { where: { fin: null }, include: { colis: { include: { client: true } } } } } });
     if (!l) throw new NotFoundException('Lot introuvable');
     return { id: l.id, reference: l.reference, mode: l.mode, checkpoints: l.checkpoints.map((c) => ({ ...c, libelle: libelleStatut(c.statut) })),
-      colis: await Promise.all(l.affectations.map(async (a) => ({ id: a.colis.id, trackingCode: a.colis.trackingCode, description: a.colis.description, client: a.colis.client.fullName, statutActuel: await this.colis.statutActuel(a.colis.id) }))) };
+      colis: await this.colis.statutsActuels(l.affectations.map((a) => a.colis.id)).then((st) => l.affectations.map((a) => ({ id: a.colis.id, trackingCode: a.colis.trackingCode, description: a.colis.description, client: a.colis.client.fullName, statutActuel: st.get(a.colis.id) ?? null }))) };
   }
   @Post('lots/:id/colis') affecter(@TenantId() tenantId: string, @Param('id') id: string, @Body() dto: AffecterDto) { return this.colis.affecter(tenantId, id, dto.colisIds); }
   @Delete('lots/:id/colis/:colisId') retirer(@TenantId() tenantId: string, @Param('id') id: string, @Param('colisId') colisId: string) { return this.colis.retirer(tenantId, id, colisId); }
