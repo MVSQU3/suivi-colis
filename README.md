@@ -16,7 +16,7 @@ Set-Content -Encoding ascii .db-url.local "postgresql://suivicolis:<mot_de_passe
 
 ## Installation et lancement (PowerShell, à la racine)
 ```powershell
-pnpm install
+pnpm install          # construit aussi packages/shared (postinstall)
 pnpm env:setup        # crée apps/api/.env : secrets JWT aléatoires, DATABASE_URL depuis .db-url.local, mot de passe seed aléatoire
 pnpm db:generate
 pnpm db:deploy        # applique les migrations (ou pnpm db:migrate en développement)

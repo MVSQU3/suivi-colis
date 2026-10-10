@@ -2,6 +2,7 @@
   "name": "suivi-colis",
   "private": true,
   "scripts": {
+    "postinstall": "pnpm --filter @suivi-colis/shared build",
     "dev": "pnpm -r --parallel dev",
     "build": "pnpm --filter @suivi-colis/shared build && pnpm --filter api build && pnpm --filter web build",
     "test": "pnpm --filter api test",
