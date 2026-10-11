@@ -60,7 +60,7 @@ async function main() {
 
     // Colis transféré entre deux lots
     const mscu = await lot(A, 'MSCU5544210', 'MER');
-    const ct = await colis(A, yao.id, 'Climatiseur split (transféré)', 'MER', 1, 45);
+    const ct = await colis(A, yao.id, 'Climatiseur split, 1 carton', 'MER', 1, 45);
     await affect(A, ct.id, msku.id, ago(36), ago(34)); // retiré de MSKU avant le départ
     await affect(A, ct.id, mscu.id, ago(34));
     await lotCp(A, mscu.id, S.CHARGE_DANS_LOT, 'Lot MSCU5544210 – Guangzhou (antidaté, non hérité)', ago(40));
@@ -84,6 +84,19 @@ async function main() {
     const steps: [S, string, number][] = [[S.PARTI_DE_CHINE, 'Aéroport Guangzhou Baiyun (CAN)', 18], [S.ARRIVE_ABIDJAN, "Aéroport FHB d'Abidjan", 16], [S.EN_DEDOUANEMENT, 'Douane – Aéroport FHB', 15], [S.DISPONIBLE_AU_RETRAIT, 'Magasin Abidjan Express, Treichville', 14], [S.REMIS_AU_CLIENT, 'Remis au client – Treichville', 12]];
     for (const [statut, lieu, d] of steps) await prisma.checkpoint.create({ data: { tenantId: A, colisId: c8.id, statut, lieu, date: ago(d) } });
 
+    // Lot maritime en cours de chargement (demo « mise a jour groupee ») : 5 colis, 5 clients
+    const koua = await client(A, 'Kouamé N\'Guessan', '+2250707000004', null, 'Abidjan - Cocody');
+    const mari = await client(A, 'Mariam Ouattara', '+2250505000005', 'mariam.ouattara@example.com', 'Abidjan - Marcory');
+    const msc = await lot(A, 'MSCU9081726', 'MER');
+    const chargement: [string, string, number][] = [[awa.id, 'Pagnes wax, 2 cartons', 2], [yao.id, 'Pneus moto, 4 pièces', 2], [fatou.id, 'Robes de soirée, 1 carton', 1], [koua.id, 'Téléphones, 1 carton', 1], [mari.id, 'Mèches et perruques, 1 carton', 1]];
+    for (const [cid, desc, n] of chargement) { const c = await colis(A, cid, desc, 'MER', n, 6); await affect(A, c.id, msc.id, ago(5)); }
+    await lotCp(A, msc.id, S.CHARGE_DANS_LOT, 'Entrepôt Guangzhou (Baiyun)', ago(4));
+
+    // Lot arrive a Abidjan (demo « fin de vie ») : un colis deja disponible au retrait
+    const disp = await colis(A, koua.id, 'Groupe électrogène, 1 caisse', 'MER', 1, 40);
+    const autre = await colis(A, mari.id, 'Ustensiles et vaisselle, 3 cartons', 'MER', 3, 40);
+    for (const c of [disp, autre]) await affect(A, c.id, mscu.id, ago(34));
+    await prisma.checkpoint.create({ data: { tenantId: A, colisId: disp.id, statut: S.DISPONIBLE_AU_RETRAIT, lieu: 'Magasin Treichville', date: ago(1) } });
     // Tenant B
     const lb = await lot(B, 'CMAU3322110', 'MER');
     for (const desc of ['Tissus wax', 'Sacs à main']) {
