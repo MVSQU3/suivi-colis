@@ -41,6 +41,7 @@ model Tenant {
   clients      Client[]
   lots         Lot[]
   colis        Colis[]
+  sites        Site[]
 }
 
 model User {
@@ -138,10 +139,27 @@ model Checkpoint {
   lieu        String
   commentaire String?
   date        DateTime
+  siteId      String?
+  site        Site?            @relation(fields: [siteId], references: [id])
   createdById String?
   createdAt   DateTime         @default(now())
 
   @@index([tenantId])
   @@index([lotId, date])
   @@index([colisId, date])
+}
+
+/// Lieu public choisi par le transitaire ; seul lieu expose sur la page de suivi.
+/// Unicite insensible a la casse par tenant : index SQL brut sur lower(nom) dans la migration.
+model Site {
+  id          String       @id @default(cuid())
+  tenantId    String
+  tenant      Tenant       @relation(fields: [tenantId], references: [id])
+  nom         String
+  actif       Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  checkpoints Checkpoint[]
+
+  @@index([tenantId])
 }

@@ -21,11 +21,11 @@ export class ColisService {
   /** Historique fusionné ; tenantId optionnel (null = accès public par code, déjà résolu). */
   async history(colisId: string) {
     const [own, affectations] = await Promise.all([
-      this.prisma.checkpoint.findMany({ where: { colisId } }),
+      this.prisma.checkpoint.findMany({ where: { colisId }, include: { site: { select: { nom: true } } } }),
       this.prisma.affectationLot.findMany({ where: { colisId } }),
     ]);
     const lotIds = [...new Set(affectations.map((a) => a.lotId))];
-    const lotCps = lotIds.length ? await this.prisma.checkpoint.findMany({ where: { lotId: { in: lotIds } } }) : [];
+    const lotCps = lotIds.length ? await this.prisma.checkpoint.findMany({ where: { lotId: { in: lotIds } }, include: { site: { select: { nom: true } } } }) : [];
     return mergeHistory(own, affectations, lotCps);
   }
 
@@ -52,6 +52,14 @@ export class ColisService {
     }
     return res;
   }
+  /** Site actif du tenant ; meme 404 pour un site inexistant ou d'un autre tenant. */
+  private async siteActif(tenantId: string, siteId: string) {
+    const site = await this.prisma.site.findFirst({ where: { id: siteId, tenantId } });
+    if (!site) throw new NotFoundException('Site introuvable');
+    if (!site.actif) throw new BadRequestException('Ce site est desactive');
+    return site;
+  }
+
   async getOwned(tenantId: string, id: string) {
     const c = await this.prisma.colis.findFirst({ where: { id, tenantId }, include: { client: true, affectations: { include: { lot: true }, orderBy: { debut: 'asc' } } } });
     if (!c) throw new NotFoundException('Colis introuvable');
@@ -74,8 +82,9 @@ export class ColisService {
 
   async addCheckpoint(tenantId: string, userId: string, id: string, dto: CheckpointDto) {
     await this.getOwned(tenantId, id);
+    const site = await this.siteActif(tenantId, dto.siteId);
     if (dto.statut === 'EXCEPTION' && !dto.commentaire?.trim()) throw new BadRequestException('Un commentaire est obligatoire pour une exception');
-    return this.prisma.checkpoint.create({ data: { tenantId, colisId: id, statut: dto.statut, lieu: dto.lieu, commentaire: dto.commentaire, date: dateCheckpoint(dto.date), createdById: userId } });
+    return this.prisma.checkpoint.create({ data: { tenantId, colisId: id, siteId: site.id, statut: dto.statut, lieu: dto.lieu?.trim() || site.nom, commentaire: dto.commentaire, date: dateCheckpoint(dto.date), createdById: userId } });
   }
 
   /** Affecte (ou transfère) des colis au lot : ferme l'affectation ouverte puis en ouvre une nouvelle, en transaction. */
@@ -108,9 +117,10 @@ export class ColisService {
   async lotCheckpoint(tenantId: string, userId: string, lotId: string, dto: CheckpointDto) {
     const lot = await this.prisma.lot.findFirst({ where: { id: lotId, tenantId } });
     if (!lot) throw new NotFoundException('Lot introuvable');
+    const site = await this.siteActif(tenantId, dto.siteId);
     if (dto.statut === 'EXCEPTION') throw new BadRequestException('Une exception se déclare sur un colis, pas sur un lot');
     const date = dateCheckpoint(dto.date);
-    const checkpoint = await this.prisma.checkpoint.create({ data: { tenantId, lotId, statut: dto.statut, lieu: dto.lieu, commentaire: dto.commentaire, date, createdById: userId } });
+    const checkpoint = await this.prisma.checkpoint.create({ data: { tenantId, lotId, siteId: site.id, statut: dto.statut, lieu: dto.lieu?.trim() || site.nom, commentaire: dto.commentaire, date, createdById: userId } });
     const updatedCount = await this.prisma.affectationLot.count({ where: { lotId, debut: { lte: date }, OR: [{ fin: null }, { fin: { gt: date } }] } });
     return { checkpointId: checkpoint.id, updatedCount };
   }

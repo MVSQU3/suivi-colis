@@ -93,6 +93,13 @@ async function main() {
     await lotCp(B, lb.id, S.CHARGE_DANS_LOT, 'Lot CMAU3322110 – Guangzhou', ago(18));
   }
 
+  // Sites par defaut pour chaque tenant (idempotent, insensible a la casse)
+  const SITES = ['Entrepôt Guangzhou (Baiyun)', 'Port de Nansha', "Port autonome d'Abidjan", 'Aéroport FHB'];
+  for (const t of await prisma.tenant.findMany()) {
+    const exist = new Set((await prisma.site.findMany({ where: { tenantId: t.id } })).map((s) => s.nom.trim().toLowerCase()));
+    for (const nom of SITES) if (!exist.has(nom.toLowerCase())) await prisma.site.create({ data: { tenantId: t.id, nom } });
+  }
+
   const all = await prisma.colis.findMany({ include: { tenant: true }, orderBy: { createdAt: 'asc' } });
   console.log('\nCodes de suivi :');
   for (const c of all) console.log(`  ${c.trackingCode}  ${c.tenant.name.padEnd(24)} ${c.description}`);

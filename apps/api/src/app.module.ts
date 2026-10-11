@@ -7,13 +7,14 @@ import { ColisService } from './colis.service';
 import { AuthController, BackOfficeController, PublicController } from './controllers';
 import { JwtAuthGuard } from './auth';
 import { UsersController } from './users.controller';
+import { SitesController } from './sites.controller';
 
 @Module({
   imports: [
     JwtModule.register({ secret: process.env.JWT_ACCESS_SECRET, signOptions: { expiresIn: process.env.JWT_ACCESS_TTL ?? '15m' } }),
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }]),
   ],
-  controllers: [AuthController, BackOfficeController, PublicController, UsersController],
+  controllers: [AuthController, BackOfficeController, PublicController, UsersController, SitesController],
   providers: [PrismaService, ColisService, JwtAuthGuard, { provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule {}

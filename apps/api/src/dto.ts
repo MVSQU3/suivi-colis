@@ -1,4 +1,4 @@
-import { IsEmail, IsEnum, IsInt, IsISO8601, IsOptional, IsString, Matches, Min, MinLength, ValidateIf, IsArray, ArrayNotEmpty, IsIn } from 'class-validator';
+import { IsEmail, IsEnum, IsInt, IsISO8601, IsOptional, IsString, Matches, Min, MinLength, ValidateIf, IsArray, ArrayNotEmpty, IsIn, IsBoolean } from 'class-validator';
 import { StatutCheckpoint, ModeTransport } from '@prisma/client';
 
 export class LoginDto { @IsEmail() email: string; @IsString() @MinLength(1) password: string }
@@ -17,8 +17,11 @@ export class CreateColisDto {
 }
 export class CheckpointDto {
   @IsEnum(StatutCheckpoint) statut: StatutCheckpoint;
-  @IsString() @MinLength(2) lieu: string;
-  /** Obligatoire et non vide pour EXCEPTION. */
+  /** Lieu public : site du tenant (obligatoire pour tout nouveau checkpoint). */
+  @IsString() siteId: string;
+  /** Ancien champ texte libre : conserve comme note interne, jamais expose publiquement. */
+  @IsOptional() @IsString() lieu?: string;
+  /** Note interne ; message affiche au client uniquement pour EXCEPTION (alors obligatoire). */
   @ValidateIf((o: CheckpointDto) => o.statut === 'EXCEPTION' || o.commentaire !== undefined)
   @IsString() @Matches(/\S/, { message: 'Un commentaire est obligatoire pour une exception' }) commentaire?: string;
   @IsOptional() @IsISO8601() date?: string;
@@ -31,3 +34,5 @@ export class InviteUserDto {
   @IsIn(['OWNER', 'AGENT']) role: 'OWNER' | 'AGENT';
   @IsString() @MinLength(12) password: string;
 }
+export class CreateSiteDto { @IsString() @Matches(/\S.*\S/, { message: 'Nom de site trop court' }) nom: string }
+export class UpdateSiteDto { @IsOptional() @IsString() @Matches(/\S.*\S/, { message: 'Nom de site trop court' }) nom?: string; @IsOptional() @IsBoolean() actif?: boolean }
