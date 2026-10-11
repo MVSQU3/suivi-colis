@@ -47,7 +47,14 @@ export class GestionController {
     catch (e) { if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') throw new ConflictException('Ce numéro correspond déjà à un client'); throw e; }
   }
   @Post('clients/:id/archiver') @HttpCode(200) @Roles('OWNER') async archiverClient(@TenantId() t: string, @Param('id') id: string) {
-    await this.client(t, id); return this.prisma.client.update({ where: { id }, data: { archivedAt: new Date() }, select: { id: true, archivedAt: true } });
+    await this.client(t, id);
+    const now = new Date();
+    const [c] = await this.prisma.$transaction([
+      this.prisma.client.update({ where: { id }, data: { archivedAt: now }, select: { id: true, archivedAt: true } }),
+      this.prisma.sessionClient.updateMany({ where: { clientId: id, revokedAt: null }, data: { revokedAt: now } }),
+      this.prisma.lienAcces.updateMany({ where: { clientId: id, usedAt: null, revokedAt: null }, data: { revokedAt: now } }),
+    ]);
+    return c;
   }
   @Post('clients/:id/desarchiver') @HttpCode(200) @Roles('OWNER') async desarchiverClient(@TenantId() t: string, @Param('id') id: string) {
     await this.client(t, id); return this.prisma.client.update({ where: { id }, data: { archivedAt: null }, select: { id: true, archivedAt: true } });
