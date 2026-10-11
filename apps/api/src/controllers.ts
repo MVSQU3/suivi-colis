@@ -105,13 +105,6 @@ export class BackOfficeController {
   }
 }
 
-/** Retire du lieu public toute reference de lot (prefixe « Lot XXX - » et references connues). */
-export function lieuPublic(lieu: string, refs: string[]): string {
-  let s = lieu.replace(/^\s*lot\s+\S+\s*[-\u2013\u2014:,]?\s*/i, '');
-  for (const r of refs) for (const part of new Set([r, r.split('-')[0]])) if (part.length >= 4) s = s.split(new RegExp(part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'ig')).join('');
-  return s.replace(/^[\s\-\u2013\u2014:,]+|[\s\-\u2013\u2014:,]+$/g, '').replace(/\s{2,}/g, ' ') || 'En transit';
-}
-
 @ApiTags('public') @Controller()
 export class PublicController {
   constructor(private prisma: PrismaService, private colis: ColisService) {}
@@ -126,13 +119,11 @@ export class PublicController {
     const c = await this.prisma.colis.findUnique({ where: { trackingCode: code }, include: { tenant: true } });
     if (!c) throw notFound;
     const h = await this.colis.history(c.id);
-    const lotIds = [...new Set(h.map((x) => x.lotId).filter((x): x is string => !!x))];
-    const refs = lotIds.length ? (await this.prisma.lot.findMany({ where: { id: { in: lotIds } }, select: { reference: true } })).map((l) => l.reference) : [];
     return {
       code, description: c.description, mode: c.mode, cartons: c.cartons,
       transitaire: { nom: c.tenant.name, telephone: c.tenant.phone, couleur: c.tenant.primaryColor },
       statutActuel: h.length ? { statut: h.at(-1)!.statut, libelle: h.at(-1)!.libelle } : null,
-      checkpoints: h.map((x) => ({ date: x.date, lieu: (x as { site?: { nom: string } | null }).site?.nom ?? lieuPublic(x.lieu, refs), statut: x.statut, libelle: x.libelle, ...(x.statut === 'EXCEPTION' ? { commentaire: x.commentaire } : {}) })),
+      checkpoints: h.map((x) => ({ date: x.date, lieu: (x as { site?: { nom: string } | null }).site?.nom ?? 'En transit', statut: x.statut, libelle: x.libelle, ...(x.statut === 'EXCEPTION' ? { commentaire: x.commentaire } : {}) })),
     };
   }
 }
