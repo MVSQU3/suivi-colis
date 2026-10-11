@@ -185,7 +185,7 @@ pnpm --filter api test:e2e         # suite e2e (ou : cd apps\api; pnpm test:e2e)
 | **429 sur l'ouverture d'un lien d'accès** (`/client/lien`) | Limite fixe dans le code : 10 POST/min et 30 GET/min par IP. Attendre une minute. |
 | **Lien magique → 410 « expiré ou déjà utilisé »** | Lien expiré (48 h), déjà utilisé (usage unique) ou remplacé par un lien plus récent, ou client archivé. Le transitaire **régénère un lien** depuis la fiche client et le renvoie. |
 | **Client qui a changé de téléphone / perdu son téléphone** | Sur la fiche client : **« Déconnecter ce client »** (révoque toutes ses sessions, `POST /clients/:id/deconnecter`), mettre à jour le numéro, renvoyer un nouveau lien. |
-| **Utilisateur désactivé encore actif** | Problème connu : son JWT reste valide jusqu'à expiration (`JWT_ACCESS_TTL`, 15 min). Il ne peut plus se reconnecter. En cas d'urgence : changer `JWT_ACCESS_SECRET` et relancer l'API (déconnecte **tout le monde**). |
+| **Utilisateur désactivé encore actif** | Problème connu : son JWT reste valide jusqu'à expiration (`JWT_ACCESS_TTL`, 15 min). Il ne peut plus se reconnecter. En cas d'urgence : changer `JWT_ACCESS_SECRET` et relancer l'API (déconnecte **tout le back-office**). Les sessions clients `sc_session`, stockées en base, ne sont pas touchées : pour couper un client, utiliser « Déconnecter ce client » ou l'archiver. |
 | **Page de suivi affiche « inactif »** | Le colis est archivé. Le désarchiver (OWNER) si le suivi doit redevenir visible. |
 | **Le PC perd la connexion / l'agent distant ne répond plus** | Attendre et relancer la commande. Vérifier ensuite que les serveurs tournent toujours (§2) et qu'aucune commande n'est restée à moitié (ex. `git status`). |
 
