@@ -83,6 +83,7 @@ model Lot {
   tenant       Tenant           @relation(fields: [tenantId], references: [id])
   reference    String
   mode         ModeTransport
+  departPrevu  DateTime?
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
   affectations AffectationLot[]
@@ -101,6 +102,7 @@ model Colis {
   trackingCode String           @unique
   description  String
   cartons      Int              @default(1)
+  poidsKg      Float?
   mode         ModeTransport
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt

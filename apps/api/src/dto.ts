@@ -1,19 +1,22 @@
-import { IsEmail, IsEnum, IsInt, IsISO8601, IsOptional, IsString, Matches, Min, MinLength, ValidateIf, IsArray, ArrayNotEmpty, IsIn, IsBoolean } from 'class-validator';
+import { IsEmail, IsEnum, IsInt, IsISO8601, IsOptional, IsString, Matches, Min, MinLength, ValidateIf, IsArray, ArrayNotEmpty, IsIn, IsBoolean, IsNumber, IsPositive } from 'class-validator';
 import { StatutCheckpoint, ModeTransport } from '@prisma/client';
 
 export class LoginDto { @IsEmail() email: string; @IsString() @MinLength(1) password: string }
 export class CreateClientDto {
   @IsString() @MinLength(2) fullName: string;
-  @Matches(/^\+\d{8,15}$/, { message: 'Téléphone au format E.164 (+225…)' }) phone: string;
+  /** Normalise cote serveur vers +225XXXXXXXXXX (voir phone.ts). */
+  @IsString() phone: string;
   @IsOptional() @IsEmail() email?: string;
   @IsOptional() @IsString() city?: string;
 }
-export class CreateLotDto { @IsString() @MinLength(2) reference: string; @IsEnum(ModeTransport) mode: ModeTransport }
+export class CreateLotDto { @IsString() @MinLength(2) reference: string; @IsEnum(ModeTransport) mode: ModeTransport; @IsOptional() @IsISO8601() departPrevu?: string }
 export class CreateColisDto {
   @IsString() clientId: string;
   @IsString() @MinLength(2) description: string;
   @IsOptional() @IsInt() @Min(1) cartons?: number;
+  @IsOptional() @IsNumber({ maxDecimalPlaces: 2 }) @IsPositive() poidsKg?: number;
   @IsEnum(ModeTransport) mode: ModeTransport;
+  @IsOptional() @IsString() lotId?: string;
 }
 export class CheckpointDto {
   @IsEnum(StatutCheckpoint) statut: StatutCheckpoint;

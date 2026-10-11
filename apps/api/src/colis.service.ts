@@ -69,9 +69,15 @@ export class ColisService {
   async create(tenantId: string, dto: CreateColisDto) {
     const client = await this.prisma.client.findFirst({ where: { id: dto.clientId, tenantId } });
     if (!client) throw new NotFoundException('Client introuvable');
+    const lot = dto.lotId ? await this.prisma.lot.findFirst({ where: { id: dto.lotId, tenantId } }) : null;
+    if (dto.lotId && !lot) throw new NotFoundException('Lot introuvable');
     for (let i = 0; i < 5; i++) {
       try {
-        return await this.prisma.colis.create({ data: { tenantId, clientId: client.id, description: dto.description, cartons: dto.cartons ?? 1, mode: dto.mode, trackingCode: generateTrackingCode() } });
+        return await this.prisma.$transaction(async (tx) => {
+          const colis = await tx.colis.create({ data: { tenantId, clientId: client.id, description: dto.description, cartons: dto.cartons ?? 1, poidsKg: dto.poidsKg, mode: dto.mode, trackingCode: generateTrackingCode() } });
+          if (lot) await tx.affectationLot.create({ data: { tenantId, colisId: colis.id, lotId: lot.id, debut: new Date() } });
+          return colis;
+        });
       } catch (e) {
         if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') continue;
         throw e;

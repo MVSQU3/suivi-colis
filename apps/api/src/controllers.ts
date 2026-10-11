@@ -1,9 +1,11 @@
-import { Body, Controller, Delete, Get, HttpCode, NotFoundException, Param, Post, Query, UnauthorizedException, UseGuards } from '@nestjs/common';
+import { BadRequestException, ConflictException, Body, Controller, Delete, Get, HttpCode, NotFoundException, Param, Post, Query, UnauthorizedException, UseGuards } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Throttle, SkipThrottle } from '@nestjs/throttler';
 import * as argon2 from 'argon2';
 import { normalizeTrackingCode, libelleStatut } from '@suivi-colis/shared';
+import { Prisma } from '@prisma/client';
+import { normaliserTelephoneCI } from './phone';
 import { PrismaService } from './prisma.service';
 import { ColisService } from './colis.service';
 import { CurrentUser, JwtAuthGuard, JwtUser, TenantId } from './auth';
@@ -53,8 +55,16 @@ export class BackOfficeController {
   @Get('clients') clients(@TenantId() tenantId: string, @Query('q') q?: string) {
     return this.prisma.client.findMany({ where: { tenantId, ...(q ? { OR: [{ fullName: { contains: q, mode: 'insensitive' } }, { phone: { contains: q } }] } : {}) }, orderBy: { fullName: 'asc' } });
   }
-  @Post('clients') createClient(@TenantId() tenantId: string, @Body() dto: CreateClientDto) {
-    return this.prisma.client.create({ data: { ...dto, tenantId } });
+  @Post('clients') async createClient(@TenantId() tenantId: string, @Body() dto: CreateClientDto) {
+    const phone = normaliserTelephoneCI(dto.phone);
+    if (!phone) throw new BadRequestException({ statusCode: 400, message: ['Numéro invalide : 10 chiffres attendus, avec ou sans +225'], champ: 'phone' });
+    const existant = await this.prisma.client.findFirst({ where: { tenantId, phone }, select: { id: true, fullName: true } });
+    if (existant) throw new ConflictException({ statusCode: 409, message: 'Ce numéro correspond déjà à un client', clientExistant: existant });
+    try { return await this.prisma.client.create({ data: { ...dto, phone, tenantId } }); }
+    catch (e) {
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') throw new ConflictException('Ce numéro correspond déjà à un client');
+      throw e;
+    }
   }
   @Get('clients/:id') async client(@TenantId() tenantId: string, @Param('id') id: string) {
     const c = await this.prisma.client.findFirst({ where: { id, tenantId }, include: { colis: true } });
@@ -81,7 +91,7 @@ export class BackOfficeController {
     const lots = await this.prisma.lot.findMany({ where: { tenantId }, include: { _count: { select: { affectations: { where: { fin: null } } } }, checkpoints: { orderBy: { date: 'desc' }, take: 1 } }, orderBy: { createdAt: 'desc' } });
     return lots.map((l) => ({ id: l.id, reference: l.reference, mode: l.mode, nbColis: l._count.affectations, dernierStatut: l.checkpoints[0]?.statut ?? null }));
   }
-  @Post('lots') createLot(@TenantId() tenantId: string, @Body() dto: CreateLotDto) { return this.prisma.lot.create({ data: { ...dto, tenantId } }); }
+  @Post('lots') createLot(@TenantId() tenantId: string, @Body() dto: CreateLotDto) { return this.prisma.lot.create({ data: { ...dto, departPrevu: dto.departPrevu ? new Date(dto.departPrevu) : undefined, tenantId } }); }
   @Get('lots/:id') async lot(@TenantId() tenantId: string, @Param('id') id: string) {
     const l = await this.prisma.lot.findFirst({ where: { id, tenantId }, include: { checkpoints: { orderBy: { date: 'asc' } }, affectations: { where: { fin: null }, include: { colis: { include: { client: true } } } } } });
     if (!l) throw new NotFoundException('Lot introuvable');
