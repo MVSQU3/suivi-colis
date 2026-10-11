@@ -44,7 +44,7 @@ export class BackOfficeController {
   async stats(@TenantId() tenantId: string) {
     const [clients, lots, colis] = await Promise.all([
       this.prisma.client.count({ where: { tenantId } }), this.prisma.lot.count({ where: { tenantId } }),
-      this.prisma.colis.findMany({ where: { tenantId }, select: { id: true } }),
+      this.prisma.colis.findMany({ where: { tenantId, archivedAt: null }, select: { id: true } }),
     ]);
     const parStatut: Record<string, number> = {};
     const statuts = await this.colis.statutsActuels(colis.map((c) => c.id));
@@ -52,8 +52,8 @@ export class BackOfficeController {
     return { clients, lots, colis: colis.length, parStatut };
   }
 
-  @Get('clients') clients(@TenantId() tenantId: string, @Query('q') q?: string) {
-    return this.prisma.client.findMany({ where: { tenantId, ...(q ? { OR: [{ fullName: { contains: q, mode: 'insensitive' } }, { phone: { contains: q } }] } : {}) }, orderBy: { fullName: 'asc' } });
+  @Get('clients') clients(@TenantId() tenantId: string, @Query('q') q?: string, @Query('archives') archives?: string) {
+    return this.prisma.client.findMany({ where: { tenantId, ...(archives === '1' ? {} : { archivedAt: null }), ...(q ? { OR: [{ fullName: { contains: q, mode: 'insensitive' } }, { phone: { contains: q } }] } : {}) }, orderBy: { fullName: 'asc' } });
   }
   @Post('clients') async createClient(@TenantId() tenantId: string, @Body() dto: CreateClientDto) {
     const phone = normaliserTelephoneCI(dto.phone);
@@ -72,10 +72,10 @@ export class BackOfficeController {
     return c;
   }
 
-  @Get('colis') async listColis(@TenantId() tenantId: string) {
-    const list = await this.prisma.colis.findMany({ where: { tenantId }, include: { client: true, affectations: { where: { fin: null }, include: { lot: true } } }, orderBy: { createdAt: 'desc' } });
+  @Get('colis') async listColis(@TenantId() tenantId: string, @Query('archives') archives?: string) {
+    const list = await this.prisma.colis.findMany({ where: { tenantId, ...(archives === '1' ? {} : { archivedAt: null }) }, include: { client: true, affectations: { where: { fin: null }, include: { lot: true } } }, orderBy: { createdAt: 'desc' } });
     const statuts = await this.colis.statutsActuels(list.map((c) => c.id));
-    return list.map((c) => ({ id: c.id, trackingCode: c.trackingCode, description: c.description, mode: c.mode, client: c.client.fullName, lot: c.affectations[0]?.lot.reference ?? null, statutActuel: statuts.get(c.id) ?? null }));
+    return list.map((c) => ({ id: c.id, archivedAt: c.archivedAt, trackingCode: c.trackingCode, description: c.description, mode: c.mode, client: c.client.fullName, lot: c.affectations[0]?.lot.reference ?? null, statutActuel: statuts.get(c.id) ?? null }));
   }
   @Post('colis') createColis(@TenantId() tenantId: string, @Body() dto: CreateColisDto) { return this.colis.create(tenantId, dto); }
   @Get('colis/:id') async getColis(@TenantId() tenantId: string, @Param('id') id: string) {
@@ -89,13 +89,13 @@ export class BackOfficeController {
 
   @Get('lots') async lots(@TenantId() tenantId: string) {
     const lots = await this.prisma.lot.findMany({ where: { tenantId }, include: { _count: { select: { affectations: { where: { fin: null } } } }, checkpoints: { orderBy: { date: 'desc' }, take: 1 } }, orderBy: { createdAt: 'desc' } });
-    return lots.map((l) => ({ id: l.id, reference: l.reference, mode: l.mode, nbColis: l._count.affectations, dernierStatut: l.checkpoints[0]?.statut ?? null }));
+    return lots.map((l) => ({ id: l.id, reference: l.reference, mode: l.mode, departPrevu: l.departPrevu, clotureLe: l.clotureLe, nbColis: l._count.affectations, dernierStatut: l.checkpoints[0]?.statut ?? null }));
   }
   @Post('lots') createLot(@TenantId() tenantId: string, @Body() dto: CreateLotDto) { return this.prisma.lot.create({ data: { ...dto, departPrevu: dto.departPrevu ? new Date(dto.departPrevu) : undefined, tenantId } }); }
   @Get('lots/:id') async lot(@TenantId() tenantId: string, @Param('id') id: string) {
     const l = await this.prisma.lot.findFirst({ where: { id, tenantId }, include: { checkpoints: { orderBy: { date: 'asc' } }, affectations: { where: { fin: null }, include: { colis: { include: { client: true } } } } } });
     if (!l) throw new NotFoundException('Lot introuvable');
-    return { id: l.id, reference: l.reference, mode: l.mode, checkpoints: l.checkpoints.map((c) => ({ ...c, libelle: libelleStatut(c.statut) })),
+    return { id: l.id, reference: l.reference, mode: l.mode, departPrevu: l.departPrevu, clotureLe: l.clotureLe, checkpoints: l.checkpoints.map((c) => ({ ...c, libelle: libelleStatut(c.statut) })),
       colis: await this.colis.statutsActuels(l.affectations.map((a) => a.colis.id)).then((st) => l.affectations.map((a) => ({ id: a.colis.id, trackingCode: a.colis.trackingCode, description: a.colis.description, client: a.colis.client.fullName, statutActuel: st.get(a.colis.id) ?? null }))) };
   }
   @Post('lots/:id/colis') affecter(@TenantId() tenantId: string, @Param('id') id: string, @Body() dto: AffecterDto) { return this.colis.affecter(tenantId, id, dto.colisIds); }
@@ -118,6 +118,7 @@ export class PublicController {
     if (!code) throw notFound;
     const c = await this.prisma.colis.findUnique({ where: { trackingCode: code }, include: { tenant: true } });
     if (!c) throw notFound;
+    if (c.archivedAt) return { code, statut: 'inactif', transitaire: { nom: c.tenant.name, telephone: c.tenant.phone, couleur: c.tenant.primaryColor } };
     const h = await this.colis.history(c.id);
     return {
       code, description: c.description, mode: c.mode, cartons: c.cartons,

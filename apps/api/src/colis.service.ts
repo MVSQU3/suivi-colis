@@ -71,6 +71,7 @@ export class ColisService {
     if (!client) throw new NotFoundException('Client introuvable');
     const lot = dto.lotId ? await this.prisma.lot.findFirst({ where: { id: dto.lotId, tenantId } }) : null;
     if (dto.lotId && !lot) throw new NotFoundException('Lot introuvable');
+    if (lot?.clotureLe) throw new ConflictException('Ce lot est clôturé : rouvrez-le pour le modifier');
     for (let i = 0; i < 5; i++) {
       try {
         return await this.prisma.$transaction(async (tx) => {
@@ -97,6 +98,7 @@ export class ColisService {
   async affecter(tenantId: string, lotId: string, colisIds: string[]) {
     const lot = await this.prisma.lot.findFirst({ where: { id: lotId, tenantId } });
     if (!lot) throw new NotFoundException('Lot introuvable');
+    if (lot.clotureLe) throw new ConflictException('Ce lot est clôturé : rouvrez-le pour le modifier');
     const colis = await this.prisma.colis.findMany({ where: { id: { in: colisIds }, tenantId } });
     if (colis.length !== new Set(colisIds).size) throw new NotFoundException('Colis introuvable');
     const now = new Date();
@@ -123,6 +125,7 @@ export class ColisService {
   async lotCheckpoint(tenantId: string, userId: string, lotId: string, dto: CheckpointDto) {
     const lot = await this.prisma.lot.findFirst({ where: { id: lotId, tenantId } });
     if (!lot) throw new NotFoundException('Lot introuvable');
+    if (lot.clotureLe) throw new ConflictException('Ce lot est clôturé : rouvrez-le pour le modifier');
     const site = await this.siteActif(tenantId, dto.siteId);
     if (dto.statut === 'EXCEPTION') throw new BadRequestException('Une exception se déclare sur un colis, pas sur un lot');
     const date = dateCheckpoint(dto.date);

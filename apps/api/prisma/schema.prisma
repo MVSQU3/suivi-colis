@@ -69,6 +69,7 @@ model Client {
   phone     String
   email     String?
   city      String?
+  archivedAt DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   colis     Colis[]
@@ -84,6 +85,7 @@ model Lot {
   reference    String
   mode         ModeTransport
   departPrevu  DateTime?
+  clotureLe    DateTime?
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
   affectations AffectationLot[]
@@ -103,6 +105,7 @@ model Colis {
   description  String
   cartons      Int              @default(1)
   poidsKg      Float?
+  archivedAt   DateTime?
   mode         ModeTransport
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt

@@ -39,3 +39,22 @@ export class InviteUserDto {
 }
 export class CreateSiteDto { @IsString() @Matches(/\S.*\S/, { message: 'Nom de site trop court' }) nom: string }
 export class UpdateSiteDto { @IsOptional() @IsString() @Matches(/\S.*\S/, { message: 'Nom de site trop court' }) nom?: string; @IsOptional() @IsBoolean() actif?: boolean }
+
+export class UpdateClientDto {
+  @IsOptional() @IsString() @MinLength(2) fullName?: string;
+  @IsOptional() @IsString() phone?: string;
+  @IsOptional() @IsEmail() email?: string;
+  @IsOptional() @IsString() city?: string;
+}
+export class UpdateColisDto {
+  @IsOptional() @IsString() clientId?: string;
+  @IsOptional() @IsString() @MinLength(2) description?: string;
+  @IsOptional() @IsInt() @Min(1) cartons?: number;
+  @IsOptional() @IsNumber({ maxDecimalPlaces: 2 }) @IsPositive() poidsKg?: number;
+  @IsOptional() @IsEnum(ModeTransport) mode?: ModeTransport;
+}
+export class UpdateLotDto {
+  @IsOptional() @IsString() @MinLength(2) reference?: string;
+  @IsOptional() @IsEnum(ModeTransport) mode?: ModeTransport;
+  @IsOptional() @IsISO8601() departPrevu?: string;
+}
