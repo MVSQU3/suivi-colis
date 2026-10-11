@@ -1,4 +1,4 @@
-# Cadrage : annuaire et comparateur de transitaires (type « Booking »)
+﻿# Cadrage : annuaire et comparateur de transitaires (type « Booking »)
 
 > Rédigé le 11/10/2026 par COLIS-PRODUIT, à la demande du user. Aucun code. Les chiffres de marché restent ceux du cadrage principal, et tout ce qui n'est pas sourcé est marqué « hypothèse ».
 
@@ -88,12 +88,26 @@ Un acheteur qui veut faire venir de la marchandise de Chine trouve, compare et c
 
 **Hors périmètre :** réserver un espace dans un conteneur en ligne, et toute garantie sur la marchandise.
 
-## 8. Questions ouvertes pour le user
+## 8. Décisions du user (11/10/2026)
 
-1. Les transitaires interrogés accepteront-ils d'être comparés publiquement ? À valider pendant les entretiens, avant de construire.
-2. Faut-il lancer l'annuaire dès la mise en ligne, ou seulement quand on aura assez de transitaires vérifiés ? Un annuaire avec trois fiches fait plus de tort que de bien.
-3. Qui fait la vérification au début (le user lui-même, un partenaire) ?
+1. **Comparaison publique : acceptée.** Un transitaire sérieux n'a rien à cacher. La règle de la section 2 reste valable : aucun concurrent sur l'espace d'un transitaire (`/suivi`, « Mes colis », lien d'accès).
+2. **Amorçage par fiches « Non revendiquées », sans scraping.** Le scraping de Facebook est écarté, parce qu'il est contraire aux CGU de Facebook et pose un problème de données personnelles (loi ivoirienne de 2013). À la place :
+   - **Création manuelle** par le user, à partir des **pages publiques** Facebook des transitaires. On ne reprend que les informations professionnelles publiées par l'entreprise : nom commercial, ville, modes, lien vers la page. Aucun numéro ni nom de personne privée, et aucun commentaire ou avis repris de Facebook.
+   - **Affichage** : un statut visible « Non revendiquée », **sans badge, sans avis, sans tarifs ni délais** (on n'invente rien à leur place), et un lien vers la page Facebook source. Un bouton « C'est votre entreprise ? Revendiquer cette fiche » est proposé.
+   - **Classement** : les fiches non revendiquées passent **toujours après** les fiches vérifiées dans les résultats, et on ne peut pas les mettre en avant.
+   - **Revendication** : le transitaire crée son compte, rattache la fiche, la complète, puis envoie ses pièces. Elle passe « En attente de vérification », puis « Vérifiée » ou « Refusée » après validation par le user. Le contact WhatsApp n'apparaît qu'une fois la fiche revendiquée.
+   - **Retrait à la demande** : un lien « Demander le retrait de cette fiche » sur chaque fiche non revendiquée. La fiche est masquée dès réception de la demande, puis supprimée après vérification sommaire, sous 72 h au plus. Les demandes sont tracées.
+   - **Cycle de vie** : `NON_REVENDIQUE`, puis `EN_ATTENTE_VERIFICATION`, puis `VERIFIE` ou `REFUSE`, avec `RETIRE` possible à tout moment (modèle en section 9, COLIS-BACKEND).
+3. **Vérification par le user au départ**, avec un **écran super-admin** simple :
+   - une file des fiches « En attente de vérification », la plus ancienne en premier ;
+   - pour chaque fiche, les pièces (RCCM, compte contribuable, pièce du gérant, photo de l'adresse), le téléphone vérifié et les informations saisies ;
+   - les actions « Valider » ou « Refuser », avec un motif obligatoire en cas de refus, envoyé au transitaire ;
+   - une file des demandes de retrait, et un journal des décisions (qui, quand, motif) ;
+   - un accès réservé au rôle `SUPER_ADMIN`. Les pièces ne sont jamais publiques.
 
+**Ajouts au périmètre MVP de l'annuaire :** fiches non revendiquées, revendication, retrait à la demande et écran super-admin de vérification.
+
+**Reste à faire valider juridiquement** avant le lancement public : les CGU de mise en relation, la mention sur les fiches non revendiquées et la procédure de retrait.
 ## 9. Impact sur le modèle de données
 
 **En bref : l'annuaire s'ajoute à côté du modèle actuel, sans le casser.** Le tenant reste l'unité d'isolation. Tout ce qui est privé (clients, colis, lots, checkpoints) reste filtré par `tenantId`, et l'annuaire ne lit que des tables publiques dédiées. Ce sont quatre migrations additives, sans reprise des données existantes.
