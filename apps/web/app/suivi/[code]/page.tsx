@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { getSuivi, type SuiviCheckpoint } from './data';
 import { ShareButton } from './share-button';
+import { CopyCode } from './copy-code';
 import SuiviIntrouvable from './not-found';
 
 export const dynamic = 'force-dynamic';
@@ -14,7 +15,10 @@ const ETAPES = (Object.keys(STATUT_META) as StatutCheckpoint[])
   .filter((s) => STATUT_META[s].etape > 0)
   .sort((a, b) => STATUT_META[a].etape - STATUT_META[b].etape);
 
-const libelle = (s: string) => STATUT_META[s as StatutCheckpoint]?.libelle ?? s;
+// Libellé client : l'exception est reformulée sans jargon (substitution locale, shared inchangé).
+const BLOQUE = 'Ton colis est bloqué';
+const SANS_TEXTE = 'Ton transitaire t’explique ci-dessous';
+const libelle = (s: string) => (s === 'EXCEPTION' ? BLOQUE : STATUT_META[s as StatutCheckpoint]?.libelle ?? s);
 const etapeDe = (s: string) => STATUT_META[s as StatutCheckpoint]?.etape ?? 0;
 
 /** Couleurs du bandeau de statut, contraste AA. */
@@ -36,7 +40,9 @@ export async function generateMetadata({ params }: { params: { code: string } })
     return { title, description, robots: { index: false }, openGraph: { title, description, type: 'website' } };
   }
   const title = `Suivi ${code} : ${libelle(r.data.statutActuel)}`;
-  const description = `Ton colis confié à ${r.data.transitaire.nom} : ${libelle(r.data.statutActuel)}. Suis chaque étape de la Chine jusqu’à Abidjan.`;
+  const description = r.data.statutActuel === 'EXCEPTION'
+    ? `Ton colis confié à ${r.data.transitaire.nom} est bloqué. Ouvre le suivi pour savoir pourquoi et contacter ton transitaire.`
+    : `Ton colis confié à ${r.data.transitaire.nom} : ${libelle(r.data.statutActuel)}. Suis chaque étape de la Chine jusqu’à Abidjan.`;
   return { title, description, robots: { index: false }, openGraph: { title, description, type: 'website', locale: 'fr_CI' } };
 }
 
@@ -71,7 +77,7 @@ function Message({ titre, texte, reessayer }: { titre: string; texte: string; re
   return (
     <div className="mx-auto max-w-md py-10 text-center">
       <AlertTriangle className="mx-auto mb-3 h-10 w-10 text-alerte" aria-hidden />
-      <h1 className="text-xl font-bold">{titre}</h1>
+      <h1 className="text-xl font-semibold">{titre}</h1>
       <p className="mt-2 text-gris-texte">{texte}</p>
       {reessayer && (
         <Button asChild size="lg" className="mt-6">
@@ -96,18 +102,31 @@ export default async function SuiviPage({ params }: { params: { code: string } }
   const lignes = construireTimeline(checkpoints);
   const tel = transitaire.telephone?.replace(/[^\d]/g, '');
   const titre = `Suivi ${code} : ${libelle(statutActuel)}`;
+  const bloque = statutActuel === 'EXCEPTION';
+  const derniereException = [...checkpoints].filter((c) => c.statut === 'EXCEPTION').sort((a, b) => +new Date(b.date) - +new Date(a.date))[0];
+  const whatsapp = tel ? (
+    <Button asChild variant="success" size="lg" className="h-12 w-full">
+      <a href={`https://wa.me/${tel}`} target="_blank" rel="noopener noreferrer"><MessageCircle aria-hidden /> Contacter sur WhatsApp</a>
+    </Button>
+  ) : null;
 
   return (
     <div className="mx-auto max-w-md space-y-4">
       <section className={cn('rounded-xl p-5 shadow-sm', heroClasses(statutActuel))} aria-live="polite">
         <p className="text-sm font-medium opacity-90">Ton colis</p>
-        <h1 className="mt-1 flex items-start gap-2 text-2xl font-bold leading-tight">
+        <h1 className="mt-1 flex items-start gap-2 text-2xl font-semibold leading-tight">
           {statutActuel === 'EXCEPTION' ? <AlertTriangle className="mt-1 h-6 w-6 shrink-0" aria-hidden /> : <Package className="mt-1 h-6 w-6 shrink-0" aria-hidden />}
           {libelle(statutActuel)}
         </h1>
+        {bloque && <p className="mt-2 text-base font-semibold">{derniereException?.commentaire || SANS_TEXTE}</p>}
         {dernier && <p className="mt-2 text-sm">Mis à jour le {formatDate(dernier.date)}{dernier.lieu ? ` · ${dernier.lieu}` : ''}</p>}
-        <p className="mt-3 text-sm">Code de suivi : <span className="font-mono font-bold tracking-wider">{code}</span></p>
+        <div className="mt-3 flex items-center justify-between gap-2">
+          <p className="text-sm">Code de suivi : <span className="whitespace-nowrap font-mono font-semibold tracking-wider">{code}</span></p>
+          <CopyCode code={code} />
+        </div>
       </section>
+
+      {bloque && whatsapp}
 
       <Card className="border-0">
         <CardHeader className="pb-2"><CardTitle className="flex items-center gap-2 text-base"><Truck className="h-5 w-5" aria-hidden /> Les étapes de ton colis</CardTitle></CardHeader>
@@ -121,9 +140,9 @@ export default async function SuiviPage({ params }: { params: { code: string } }
                     {!fin && <span className="absolute left-[11px] top-6 h-full w-0.5 bg-alerte/40" aria-hidden />}
                     <span className="z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-alerte text-white"><AlertTriangle className="h-3.5 w-3.5" aria-hidden /></span>
                     <div className="min-w-0 rounded-md border border-alerte/40 bg-alerte/5 px-3 py-2">
-                      <p className="font-semibold text-alerte">Incident</p>
+                      <p className="font-semibold text-alerte">{BLOQUE}</p>
                       <p className="text-sm text-gris-texte">{formatDate(l.cp.date)}{l.cp.lieu ? ` · ${l.cp.lieu}` : ''}</p>
-                      {l.cp.commentaire && <p className="mt-1 text-sm">{l.cp.commentaire}</p>}
+                      <p className="mt-1 text-sm">{l.cp.commentaire || SANS_TEXTE}</p>
                     </div>
                   </li>
                 );
@@ -152,13 +171,8 @@ export default async function SuiviPage({ params }: { params: { code: string } }
           <p className="text-sm text-gris-texte">Ton transitaire</p>
           <CardTitle className="text-base">{transitaire.nom}</CardTitle>
         </CardHeader>
-        {tel && (
-          <CardContent>
-            <Button asChild variant="success" size="lg" className="w-full">
-              <a href={`https://wa.me/${tel}`} target="_blank" rel="noopener noreferrer"><MessageCircle aria-hidden /> Contacter sur WhatsApp</a>
-            </Button>
-          </CardContent>
-        )}
+        {whatsapp && !bloque && <CardContent>{whatsapp}</CardContent>}
+        {whatsapp && bloque && <CardContent className="text-sm text-gris-texte">Le bouton WhatsApp est en haut de la page.</CardContent>}
       </Card>
 
       <ShareButton title={titre} />

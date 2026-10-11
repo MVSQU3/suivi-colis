@@ -20,7 +20,7 @@ export function ShareButton({ title }: { title: string }) {
     setTimeout(() => setCopie(false), 2500);
   }
   return (
-    <Button variant="outline" size="lg" className="w-full bg-white" onClick={partager}>
+    <Button variant="outline" size="lg" className="h-12 w-full bg-white" onClick={partager}>
       {copie ? <Check aria-hidden /> : <Share2 aria-hidden />}
       {copie ? 'Lien copié !' : 'Partager le suivi'}
     </Button>
