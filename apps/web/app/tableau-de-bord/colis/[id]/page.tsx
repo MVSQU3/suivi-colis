@@ -12,12 +12,17 @@ import { api } from '@/lib/api';
 import { Badge } from '@/components/statut';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Pastille, Confirmer, Supprimer, ModifierClient, ModifierColis, ModifierLot } from '@/components/Gestion';
+import { useRole } from '@/lib/role';
+import { Pencil } from 'lucide-react';
+import { Archive } from 'lucide-react';
+import { Trash } from 'lucide-react';
 import { CheckpointForm, messageErreur, statutSuivant, type CheckpointBody } from '@/components/CheckpointForm';
 import { TimelineBO, type TimelineEntry } from '@/components/TimelineBO';
 
 interface Affectation { id: string; debut: string; fin: string | null; lot: { id: string; reference: string; mode: string } }
 interface Detail {
-  id: string; trackingCode: string; description: string; cartons?: number; mode: string;
+  id: string; trackingCode: string; description: string; cartons?: number; poidsKg?: number | null; mode: string; archivedAt?: string | null;
   client: { fullName: string; phone?: string | null; city?: string | null };
   affectations: Affectation[]; historique: TimelineEntry[]; statutActuel: string | null;
 }
@@ -27,6 +32,8 @@ export default function ColisDetail({ params }: { params: { id: string } }) {
   const [err, setErr] = useState<string | null>(null);
   const [ok, setOk] = useState<string | null>(null);
   const [form, setForm] = useState<'etape' | 'exception' | null>(null);
+  const [dlg, setDlg] = useState<'modifier' | 'archiver' | 'desarchiver' | 'supprimer' | null>(null);
+  const { responsable } = useRole();
 
   const load = useCallback(() => { setErr(null); return api<Detail>(`/colis/${params.id}`).then(setD).catch((e) => setErr(messageErreur(e))); }, [params.id]);
   useEffect(() => { void load(); }, [load]);
@@ -49,9 +56,9 @@ export default function ColisDetail({ params }: { params: { id: string } }) {
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div className="min-w-0">
               <h1 className="font-mono text-xl font-semibold">{d.trackingCode}</h1>
-              <p className="text-sm text-gris-texte">{d.description}{d.cartons ? ` · ${d.cartons} carton${d.cartons > 1 ? 's' : ''}` : ''} · {d.mode === 'MER' ? 'Maritime' : 'Aérien'}</p>
+              <p className="text-sm text-gris-texte">{d.description}{d.cartons ? ` · ${d.cartons} carton${d.cartons > 1 ? 's' : ''}` : ''}{d.poidsKg != null ? ` · ${String(d.poidsKg).replace('.', ',')} kg` : ''} · {d.mode === 'MER' ? 'Maritime' : 'Aérien'}</p>
             </div>
-            <Badge statut={d.statutActuel} />
+            <div className="flex flex-wrap gap-2">{d.archivedAt && <Pastille>Archivé</Pastille>}<Badge statut={d.statutActuel} /></div>
           </div>
           <p className="text-sm"><span className="font-semibold">{d.client.fullName}</span>{d.client.city ? ` · ${d.client.city}` : ''}{d.client.phone ? ` · ${formatTelephone(d.client.phone)}` : ''}</p>
           <a className="inline-flex min-h-11 items-center gap-1 text-sm font-semibold text-fonce underline underline-offset-2" href={`/suivi/${d.trackingCode}`} target="_blank" rel="noreferrer">
@@ -61,9 +68,28 @@ export default function ColisDetail({ params }: { params: { id: string } }) {
             <Button size="lg" className="h-12 flex-1" onClick={() => { setForm('etape'); setOk(null); }}><Plus aria-hidden /> Ajouter une étape</Button>
             <Button size="lg" variant="destructive" className="h-12 flex-1" onClick={() => { setForm('exception'); setOk(null); }}><AlertTriangle aria-hidden /> Signaler un problème</Button>
           </div>
+          {d.archivedAt && <p className="rounded-md bg-fond px-3 py-2 text-sm">Colis archivé : sa page de suivi affiche « plus actif » au client.</p>}
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" className="h-11" onClick={() => setDlg('modifier')}><Pencil aria-hidden /> Modifier</Button>
+            {responsable && (d.archivedAt
+              ? <Button variant="outline" className="h-11" onClick={() => setDlg('desarchiver')}><Archive aria-hidden /> Désarchiver</Button>
+              : <Button variant="outline" className="h-11" onClick={() => setDlg('archiver')}><Archive aria-hidden /> Archiver</Button>)}
+            {responsable && <Button variant="outline" className="h-11 text-alerte" onClick={() => setDlg('supprimer')}><Trash aria-hidden /> Supprimer</Button>}
+          </div>
         </CardContent>
       </Card>
 
+      {dlg === 'modifier' && <ModifierColis colis={d} onClose={() => setDlg(null)} onDone={() => { setDlg(null); setOk('Colis modifié.'); void load(); }} />}
+      {(dlg === 'archiver' || dlg === 'desarchiver') && (
+        <Confirmer titre={dlg === 'archiver' ? `Archiver ${d.trackingCode} ?` : `Désarchiver ${d.trackingCode} ?`}
+          texte={dlg === 'archiver' ? 'Le colis disparaîtra des listes et sa page de suivi indiquera au client que le suivi n’est plus actif. Son historique est conservé.' : 'Le colis réapparaîtra dans la liste et sa page de suivi redeviendra active.'}
+          libelle={dlg === 'archiver' ? 'Archiver' : 'Désarchiver'} action={() => api(`/colis/${d.id}/${dlg}`, { method: 'POST' })}
+          onClose={() => setDlg(null)} onDone={() => { setOk(dlg === 'archiver' ? 'Colis archivé.' : 'Colis désarchivé.'); setDlg(null); void load(); }} />
+      )}
+      {dlg === 'supprimer' && (
+        <Supprimer entite="colis" id={d.id} nom={d.trackingCode} onClose={() => setDlg(null)}
+          onDone={(r) => { if (r === 'supprime') { window.location.href = '/tableau-de-bord/colis'; return; } setDlg(null); setOk('Colis archivé.'); void load(); }} />
+      )}
       {ok && <p className="rounded-md bg-succes/10 px-4 py-3 text-sm font-semibold text-succes-fonce" role="status">{ok}</p>}
 
       {form && (

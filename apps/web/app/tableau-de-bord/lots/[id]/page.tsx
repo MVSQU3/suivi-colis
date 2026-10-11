@@ -12,14 +12,20 @@ import { api } from '@/lib/api';
 import { Badge } from '@/components/statut';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Pastille, Confirmer, Supprimer, ModifierClient, ModifierColis, ModifierLot } from '@/components/Gestion';
+import { useRole } from '@/lib/role';
+import { Pencil } from 'lucide-react';
+import { Archive } from 'lucide-react';
+import { Trash } from 'lucide-react';
+import { formatDate } from '@suivi-colis/shared';
 import { CheckpointForm, messageErreur, statutSuivant, type CheckpointBody } from '@/components/CheckpointForm';
 import { TimelineBO, type TimelineEntry } from '@/components/TimelineBO';
 import { Modal } from '@/components/Modal';
 import { cn } from '@/lib/utils';
 
 interface ColisLot { id: string; trackingCode: string; description: string; client: string; statutActuel: string | null }
-interface Detail { id: string; reference: string; mode: string; checkpoints: TimelineEntry[]; colis: ColisLot[] }
-interface LotRow { id: string; reference: string }
+interface Detail { id: string; reference: string; mode: string; departPrevu?: string | null; clotureLe?: string | null; checkpoints: TimelineEntry[]; colis: ColisLot[] }
+interface LotRow { id: string; reference: string; clotureLe?: string | null }
 
 export default function LotDetail({ params }: { params: { id: string } }) {
   const [d, setD] = useState<Detail | null>(null);
@@ -31,6 +37,8 @@ export default function LotDetail({ params }: { params: { id: string } }) {
   const [autres, setAutres] = useState<LotRow[]>([]);
   const [cible, setCible] = useState('');
   const [actionErr, setActionErr] = useState<string | null>(null);
+  const [dlg, setDlg] = useState<'modifier' | 'cloturer' | 'rouvrir' | 'supprimer' | null>(null);
+  const { responsable } = useRole();
 
   const load = useCallback(() => {
     setErr(null);
@@ -43,6 +51,7 @@ export default function LotDetail({ params }: { params: { id: string } }) {
 
   const actuel = [...d.checkpoints].sort((a, b) => +new Date(b.date) - +new Date(a.date))[0]?.statut ?? null;
   const n = d.colis.length;
+  const cloture = !!d.clotureLe;
   const colis = [...d.colis].sort((a, b) => Number(b.statutActuel === 'EXCEPTION') - Number(a.statutActuel === 'EXCEPTION'));
 
   async function majLot(body: CheckpointBody) {
@@ -56,7 +65,7 @@ export default function LotDetail({ params }: { params: { id: string } }) {
   }
   async function ouvrirTransfert(c: ColisLot) {
     setActionErr(null); setCible(''); setTransfert(c);
-    try { setAutres((await api<LotRow[]>('/lots')).filter((l) => l.id !== params.id)); } catch (e) { setActionErr(messageErreur(e)); }
+    try { setAutres((await api<LotRow[]>('/lots')).filter((l) => l.id !== params.id && !l.clotureLe)); } catch (e) { setActionErr(messageErreur(e)); }
   }
   async function transferer() {
     if (!transfert || !cible) return;
@@ -86,16 +95,35 @@ export default function LotDetail({ params }: { params: { id: string } }) {
           <span className="flex h-12 w-12 items-center justify-center rounded-lg bg-fond">{d.mode === 'MER' ? <Ship className="h-6 w-6" aria-hidden /> : <Plane className="h-6 w-6" aria-hidden />}</span>
           <div className="min-w-0 flex-1">
             <h1 className="break-all text-xl font-semibold">{d.reference}</h1>
-            <p className="text-sm text-gris-texte">{d.mode === 'MER' ? 'Maritime' : 'Aérien'} · {n} colis</p>
-            <div className="mt-2"><Badge statut={actuel} /></div>
+            <p className="text-sm text-gris-texte">{d.mode === 'MER' ? 'Maritime' : 'Aérien'} · {n} colis{d.departPrevu ? ` · départ prévu le ${formatDate(d.departPrevu).slice(0, 10)}` : ''}</p>
+            <div className="mt-2 flex flex-wrap gap-2">{cloture && <Pastille>Clôturé</Pastille>}<Badge statut={actuel} /></div>
           </div>
-          <div className="hidden sm:block">{boutonMaj}</div>
+          {!cloture && <div className="hidden sm:block">{boutonMaj}</div>}
+          <div className="flex w-full flex-wrap gap-2">
+            <Button variant="outline" className="h-11" onClick={() => setDlg('modifier')}><Pencil aria-hidden /> Modifier</Button>
+            {responsable && (cloture
+              ? <Button variant="outline" className="h-11" onClick={() => setDlg('rouvrir')}><Archive aria-hidden /> Rouvrir</Button>
+              : <Button variant="outline" className="h-11" onClick={() => setDlg('cloturer')}><Archive aria-hidden /> Clôturer</Button>)}
+            {responsable && <Button variant="outline" className="h-11 text-alerte" onClick={() => setDlg('supprimer')}><Trash aria-hidden /> Supprimer</Button>}
+          </div>
         </CardContent>
       </Card>
 
+      {cloture && <p className="rounded-md border-l-4 border-fonce bg-white px-4 py-3 text-sm font-semibold" role="note">Lot clôturé{d.clotureLe ? ` le ${formatDate(d.clotureLe).slice(0, 10)}` : ''} : mettez à jour les colis un par un.</p>}
+      {dlg === 'modifier' && <ModifierLot lot={d} onClose={() => setDlg(null)} onDone={() => { setDlg(null); setOk('Lot modifié.'); void load(); }} />}
+      {(dlg === 'cloturer' || dlg === 'rouvrir') && (
+        <Confirmer titre={dlg === 'cloturer' ? `Clôturer le lot ${d.reference} ?` : `Rouvrir le lot ${d.reference} ?`}
+          texte={dlg === 'cloturer' ? 'Plus de mise à jour groupée ni d’ajout de colis dans ce lot. Les colis restent modifiables un par un.' : 'La mise à jour groupée et l’ajout de colis seront de nouveau possibles.'}
+          libelle={dlg === 'cloturer' ? 'Clôturer' : 'Rouvrir'} action={() => api(`/lots/${d.id}/${dlg}`, { method: 'POST' })}
+          onClose={() => setDlg(null)} onDone={() => { setOk(dlg === 'cloturer' ? 'Lot clôturé.' : 'Lot rouvert.'); setDlg(null); setForm(false); void load(); }} />
+      )}
+      {dlg === 'supprimer' && (
+        <Supprimer entite="lots" id={d.id} nom={`le lot ${d.reference}`} onClose={() => setDlg(null)}
+          onDone={(r) => { if (r === 'supprime') { window.location.href = '/tableau-de-bord/lots'; return; } setDlg(null); setForm(false); setOk('Lot clôturé.'); void load(); }} />
+      )}
       {ok && <p className="rounded-md bg-succes/10 px-4 py-3 text-sm font-semibold text-succes-fonce" role="status">{ok}</p>}
 
-      {form && (
+      {form && !cloture && (
         <Card className="border-2 border-primaire">
           <CardHeader><CardTitle className="text-base">Mettre à jour tout le lot</CardTitle><p className="text-sm text-gris-texte">{n === 1 ? '1 colis concerné' : `${n} colis concernés`} · Visible par {n === 1 ? 'le client' : `les ${n} clients`} de ce lot</p></CardHeader>
           <CardContent>
@@ -138,7 +166,7 @@ export default function LotDetail({ params }: { params: { id: string } }) {
       </Card>
 
       {/* Bouton fixé en bas sur mobile */}
-      {!form && <div className="fixed inset-x-0 bottom-0 z-30 border-t border-gris/30 bg-white p-3 sm:hidden">{boutonMaj}</div>}
+      {!form && !cloture && <div className="fixed inset-x-0 bottom-0 z-30 border-t border-gris/30 bg-white p-3 sm:hidden">{boutonMaj}</div>}
 
       {probleme && (
         <Modal titre={`Signaler un problème · ${probleme.trackingCode}`} onClose={() => setProbleme(null)}>

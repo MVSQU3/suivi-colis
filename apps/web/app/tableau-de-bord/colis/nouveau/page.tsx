@@ -15,7 +15,7 @@ import { Modal } from '@/components/Modal';
 import { ClientForm, type ClientLite } from '@/components/ClientForm';
 import { messageErreur } from '@/components/CheckpointForm';
 
-interface LotRow { id: string; reference: string; mode: string }
+interface LotRow { id: string; reference: string; mode: string; clotureLe?: string | null }
 interface Cree { id: string; trackingCode: string }
 
 export default function Page() { return <Suspense fallback={<div className="h-64 animate-pulse rounded-lg bg-white" />}><NouveauColis /></Suspense>; }
@@ -40,7 +40,7 @@ function NouveauColis() {
 
   useEffect(() => {
     Promise.all([api<ClientLite[]>('/clients'), api<LotRow[]>('/lots')]).then(([c, l]) => {
-      setClients(c); setLots(l);
+      setClients(c); setLots(l.filter((x) => !x.clotureLe));
       const pre = sp.get('client'); if (pre) setClient(c.find((x) => x.id === pre) ?? null);
     }).catch((e) => setChargeErr(messageErreur(e)));
   }, [sp]);

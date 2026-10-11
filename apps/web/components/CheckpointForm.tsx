@@ -27,7 +27,8 @@ export function messageErreur(e: unknown): string {
   if (e.status === 404 && m.includes('site')) return 'Ce site n’existe pas (ou plus). Rechargez la page et choisissez un autre site.';
   if (m.includes('siteid')) return 'Choisissez un site.';
   if (m.includes('commentaire')) return 'Un message pour le client est obligatoire pour une exception.';
-  if (e.status === 409) return 'Un site porte déjà ce nom (même avec une casse ou des espaces différents).';
+  if (e.status === 409 && m.includes('site')) return 'Un site porte déjà ce nom (même avec une casse ou des espaces différents).';
+  if (e.status === 403) return 'Cette action est réservée au responsable du compte.';
   if (m.includes('exception se déclare') || m.includes('exception se declare')) return 'Une exception se déclare sur un colis, pas sur un lot.';
   return e.message || 'Erreur inattendue.';
 }

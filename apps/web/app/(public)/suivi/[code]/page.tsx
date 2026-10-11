@@ -94,6 +94,20 @@ export default async function SuiviPage({ params }: { params: { code: string } }
   if (!r.ok) {
     // Rendu inline (et non notFound()) : Next 14.2 sert sinon un shell d'erreur rendu côté client, illisible sans JS.
     if (r.kind === 'introuvable') return <SuiviIntrouvable />;
+    if (r.kind === 'inactif') {
+      const telInactif = r.transitaire?.telephone?.replace(/[^\d]/g, '');
+      return (
+        <div className="mx-auto max-w-md py-10 text-center">
+          <h1 className="text-xl font-semibold">Ce suivi n’est plus actif</h1>
+          <p className="mt-2 text-gris-texte">Contacte ton transitaire{r.transitaire?.nom ? ` (${r.transitaire.nom})` : ''} pour plus d’informations.</p>
+          {telInactif && (
+            <Button asChild variant="success" size="lg" className="mt-6 h-12 w-full">
+              <a href={`https://wa.me/${telInactif}`} target="_blank" rel="noopener noreferrer"><MessageCircle aria-hidden /> Contacter sur WhatsApp</a>
+            </Button>
+          )}
+        </div>
+      );
+    }
     if (r.kind === 'trop') return <Message titre="Patiente un peu" texte="Trop de tentatives, réessaie dans quelques minutes." />;
     return <Message titre="Oups, petit souci" texte="Impossible d’afficher ton suivi pour le moment. Vérifie ta connexion et réessaie." reessayer={`/suivi/${encodeURIComponent(code)}`} />;
   }
