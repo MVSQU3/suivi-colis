@@ -18,6 +18,9 @@ async function bootstrap() {
   SwaggerModule.setup('api/docs', app, doc);
   const port = Number(process.env.API_PORT ?? 4000);
   await app.listen(port, '0.0.0.0');
+  // Trace la base reellement utilisee (jamais le mot de passe) pour reperer une API branchee sur la mauvaise base.
+  try { const db = new URL(process.env.DATABASE_URL ?? ''); console.log(`[api] port ${port} - base ${db.pathname.replace(/^\//, '')} sur ${db.hostname}:${db.port || '5432'}`); }
+  catch { console.warn('[api] DATABASE_URL absente ou illisible'); }
   console.log(`API prête sur http://localhost:${port}/api/v1 (docs : /api/docs)`);
 }
 void bootstrap();
