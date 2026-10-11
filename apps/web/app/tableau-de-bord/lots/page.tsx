@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Ship } from 'lucide-react';
 import { Plane } from 'lucide-react';
 import { RefreshCw } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { api } from '@/lib/api';
 import { Badge } from '@/components/statut';
 import { Card, CardContent } from '@/components/ui/card';
@@ -19,7 +20,7 @@ export default function LotsPage() {
   useEffect(charger, []);
   return (
     <div className="space-y-4">
-      <div><h1 className="text-2xl font-semibold">Lots</h1><p className="text-sm text-gris-texte">Conteneurs et LTA : mettez à jour tous leurs colis d’un coup.</p></div>
+      <div className="flex flex-wrap items-end justify-between gap-3"><div><h1 className="text-2xl font-semibold">Lots</h1><p className="text-sm text-gris-texte">Conteneurs et LTA : mettez à jour tous leurs colis d’un coup.</p></div><Button asChild size="lg" className="h-11"><Link href="/tableau-de-bord/lots/nouveau"><Plus aria-hidden /> Nouveau lot</Link></Button></div>
       {err ? <Erreur msg={err} retry={charger} /> : !lots ? <div className="h-64 animate-pulse rounded-lg bg-white" /> : lots.length === 0 ? (
         <p className="rounded-lg bg-white px-4 py-10 text-center text-gris-texte">Aucun lot pour le moment.</p>
       ) : (

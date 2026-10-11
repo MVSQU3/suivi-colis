@@ -19,7 +19,7 @@ const NAV = [
   { href: '/tableau-de-bord', label: 'Tableau de bord', icon: LayoutDashboard },
   { href: '/tableau-de-bord/lots', label: 'Lots', icon: Boxes },
   { href: '/tableau-de-bord/colis', label: 'Colis', icon: Package },
-  { href: '/tableau-de-bord#clients', label: 'Clients', icon: Users },
+  { href: '/tableau-de-bord/clients', label: 'Clients', icon: Users },
 ];
 
 export default function BackOfficeLayout({ children }: { children: ReactNode }) {
