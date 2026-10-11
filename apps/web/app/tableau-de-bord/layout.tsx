@@ -17,8 +17,8 @@ interface Me { fullName: string; role: string; tenant: { name: string } }
 
 const NAV = [
   { href: '/tableau-de-bord', label: 'Tableau de bord', icon: LayoutDashboard },
-  { href: '/tableau-de-bord#lots', label: 'Lots', icon: Boxes },
-  { href: '/tableau-de-bord#colis', label: 'Colis', icon: Package },
+  { href: '/tableau-de-bord/lots', label: 'Lots', icon: Boxes },
+  { href: '/tableau-de-bord/colis', label: 'Colis', icon: Package },
   { href: '/tableau-de-bord#clients', label: 'Clients', icon: Users },
 ];
 
@@ -41,7 +41,7 @@ export default function BackOfficeLayout({ children }: { children: ReactNode }) 
   const nav = (
     <nav className="flex flex-col gap-1 p-3" aria-label="Navigation du back-office">
       {NAV.map(({ href, label, icon: Icon }) => {
-        const actif = href === '/tableau-de-bord' ? pathname === href : false;
+        const actif = href === '/tableau-de-bord' ? pathname === href : !href.includes('#') && pathname.startsWith(href);
         return (
           <Link key={href} href={href} onClick={() => setOuvert(false)}
             className={cn('flex min-h-11 items-center gap-3 rounded-md px-3 text-sm font-semibold text-white/90 hover:bg-white/10', actif && 'bg-white/15 text-white')}>

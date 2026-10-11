@@ -69,8 +69,8 @@ export default function Dashboard() {
           <p className="text-sm text-gris-texte">Vue d’ensemble de tes expéditions</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button asChild size="lg" className="h-11"><Link href="#lots"><Plus aria-hidden /> Nouveau lot</Link></Button>
-          <Button asChild size="lg" variant="outline" className="h-11 bg-white"><Link href="#colis"><Plus aria-hidden /> Nouveau colis</Link></Button>
+          <Button asChild size="lg" className="h-11"><Link href="/tableau-de-bord/lots"><Plus aria-hidden /> Nouveau lot</Link></Button>
+          <Button asChild size="lg" variant="outline" className="h-11 bg-white"><Link href="/tableau-de-bord/colis"><Plus aria-hidden /> Nouveau colis</Link></Button>
           <Button asChild size="lg" variant="secondary" className="h-11">
             <Link href={lotRecent ? `/tableau-de-bord/lots/${lotRecent.id}` : '#lots'}><RefreshCw aria-hidden /> Mise à jour groupée</Link>
           </Button>
