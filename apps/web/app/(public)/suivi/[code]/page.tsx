@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import { getSuivi, type SuiviCheckpoint } from './data';
 import { ShareButton } from './share-button';
 import { CopyCode } from './copy-code';
-import SuiviIntrouvable from './not-found';
+import SuiviIntrouvable from './introuvable';
 
 export const dynamic = 'force-dynamic';
 
