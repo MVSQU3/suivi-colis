@@ -45,8 +45,8 @@ async function main() {
     const lot = (tenantId: string, reference: string, mode: ModeTransport) => prisma.lot.create({ data: { tenantId, reference, mode } });
     const affect = (tenantId: string, colisId: string, lotId: string, debut: Date, fin: Date | null = null) =>
       prisma.affectationLot.create({ data: { tenantId, colisId, lotId, debut, fin } });
-    const lotCp = (tenantId: string, lotId: string, statut: S, lieu: string, date: Date) =>
-      prisma.checkpoint.create({ data: { tenantId, lotId, statut, lieu, date } });
+    const lotCp = (tenantId: string, lotId: string, statut: S, lieu: string, date: Date, commentaire?: string) =>
+      prisma.checkpoint.create({ data: { tenantId, lotId, statut, lieu, date, commentaire } });
 
     // Lot maritime de 4 colis
     const msku = await lot(A, 'MSKU7788123', 'MER');
@@ -56,7 +56,7 @@ async function main() {
     const c4 = await colis(A, fatou.id, 'Ustensiles de cuisine', 'MER');
     for (const c of [c1, c2, c3, c4]) await affect(A, c.id, msku.id, ago(36));
     await lotCp(A, msku.id, S.CHARGE_DANS_LOT, 'Lot MSKU7788123 – Guangzhou', ago(35));
-    await lotCp(A, msku.id, S.PARTI_DE_CHINE, 'Port de Nansha, Guangzhou', ago(33));
+    await lotCp(A, msku.id, S.PARTI_DE_CHINE, 'Port de Nansha, Guangzhou', ago(33), 'NOTE INTERNE : connaissement chez le transitaire du port, solde a regler avant arrivee');
 
     // Colis transféré entre deux lots
     const mscu = await lot(A, 'MSCU5544210', 'MER');
