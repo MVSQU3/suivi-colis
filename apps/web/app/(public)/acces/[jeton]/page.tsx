@@ -40,11 +40,17 @@ export default async function AccesPage({ params }: { params: { jeton: string } 
   const tel = telWhatsApp(r.transitaire?.telephone);
   return (
     <section className={carte}>
+      {r.transitaire && (
+        <>
+          <p className="text-sm text-gris-texte">Lien envoyé par</p>
+          <p className="mb-4 text-lg font-semibold">{r.transitaire.nom}</p>
+        </>
+      )}
       <h1 className="text-xl font-semibold">Lien expiré ou déjà utilisé</h1>
       <p className="mt-2 text-gris-texte">Demande un nouveau lien à ton transitaire.</p>
       {r.transitaire && tel && (
-        <a className="mt-5 flex min-h-12 w-full items-center justify-center rounded-md bg-succes-fonce px-4 font-semibold text-white" href={`https://wa.me/${tel}`} target="_blank" rel="noopener noreferrer">
-          Contacter {r.transitaire.nom} sur WhatsApp
+        <a className="mx-auto mt-5 flex min-h-12 w-fit items-center justify-center whitespace-nowrap rounded-md bg-succes-fonce px-6 text-center font-semibold text-white" href={`https://wa.me/${tel}`} target="_blank" rel="noopener noreferrer">
+          Contacter sur WhatsApp
         </a>
       )}
     </section>
