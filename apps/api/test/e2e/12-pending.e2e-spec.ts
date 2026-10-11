@@ -10,10 +10,6 @@ describe('12. En attente (fonctionnalites non livrees / problemes connus)', () =
     it.todo('jeton stocke hache en base (jamais en clair)');
     it.todo('reponse de la demande identique que le telephone existe ou non (pas d enumeration)');
   });
-  describe('archivage / suppression (regles non definies)', () => {
-    it.todo('archiver un colis livre le retire des listes actives mais garde le suivi public');
-    it.todo('suppression interdite pour un colis/lot ayant des checkpoints (soft delete uniquement)');
-  });
 
   describe('utilisateur desactive', () => {
     let app: INestApplication; const p = new PrismaClient();
