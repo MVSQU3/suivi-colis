@@ -1,4 +1,4 @@
-import { INestApplication } from '@nestjs/common';
+﻿import { INestApplication } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import { api, bootApp, ids, newColis, resetDb, tokens } from './helpers';
 
@@ -104,7 +104,7 @@ describe('8. Suivi public GET /public/suivi/:code', () => {
         const r = await pub(code);
         for (const [vr, lieu] of variants) if (vr === ref) {
           const cp = r.body.checkpoints.find((c: { date: string }) => c.date === dates.get(`${ref}|${lieu}`));
-          results.set(`${ref}|${lieu}`, cp?.lieu ?? '<absent>');
+          results.set(`${ref}|${lieu}`, cp ? (cp.lieu ?? '') : '<absent>');
         }
       }
       // eslint-disable-next-line no-console
