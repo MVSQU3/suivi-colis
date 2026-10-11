@@ -1,4 +1,4 @@
-﻿# Cadrage : annuaire et comparateur de transitaires (type « Booking »)
+# Cadrage : annuaire et comparateur de transitaires (type « Booking »)
 
 > Rédigé le 11/10/2026 par COLIS-PRODUIT, à la demande du user. Aucun code. Les chiffres de marché restent ceux du cadrage principal, et tout ce qui n'est pas sourcé est marqué « hypothèse ».
 
@@ -94,6 +94,18 @@ Un acheteur qui veut faire venir de la marchandise de Chine trouve, compare et c
 2. Faut-il lancer l'annuaire dès la mise en ligne, ou seulement quand on aura assez de transitaires vérifiés ? Un annuaire avec trois fiches fait plus de tort que de bien.
 3. Qui fait la vérification au début (le user lui-même, un partenaire) ?
 
-## 9. Impact sur le modèle de données (à compléter par COLIS-BACKEND)
+## 9. Impact sur le modèle de données
 
-_Profil public du tenant, recherche, avis : à rédiger, sans code._
+**En bref : l'annuaire s'ajoute à côté du modèle actuel, sans le casser.** Le tenant reste l'unité d'isolation. Tout ce qui est privé (clients, colis, lots, checkpoints) reste filtré par `tenantId`, et l'annuaire ne lit que des tables publiques dédiées. Ce sont quatre migrations additives, sans reprise des données existantes.
+
+**1. Profil public du tenant, dans une table séparée `ProfilPublic` (1-1 avec `Tenant`).** On ne charge pas `Tenant`, qui porte aussi des données internes. La table contient : `slug` unique (l'URL `/transitaires/<slug>`), présentation, ville et adresse physique, WhatsApp public, photos, `statut` (`BROUILLON` → `EN_VERIFICATION` → `VERIFIE` | `REFUSE` | `SUSPENDU`), `verifieLe`, `verifiePar`, `publie`. L'API publique ne sert que les profils `VERIFIE` et `publie`, avec une liste blanche de champs, comme pour `/suivi`. Les pièces justificatives (RCCM, identité) vont dans une table `PieceVerification` privée, jamais exposée, avec stockage fichier hors base et effacement après décision.
+
+**2. Offre comparable : `LigneTransport` (n par tenant).** Les champs sont : `mode` (MER | AIR), ville de départ (référentiel fixe : Guangzhou, Yiwu, Shenzhen…), `delaiMinJours`/`delaiMaxJours`, `tarifIndicatif` + `unite` (KG | CBM) + `devise` (XOF), `prochainDepart?`, `actif`. Les zones de retrait sont une table `ZoneRetrait` en référentiel commun (Adjamé, Treichville, Bouaké…), reliée au tenant en n-n. Un référentiel fixe vaut mieux que du texte libre, sinon on ne peut ni filtrer ni comparer. Les `Site` actuels restent internes au suivi, c'est un autre usage.
+
+**3. Avis : `Avis` relié à un `Colis` réellement remis.** Les champs sont : `colisId` **unique** (un avis par colis), `tenantId`, `clientId`, note de 1 à 5 (CHECK), texte, `reponseTransitaire?`, `statutModeration`, `createdAt`. L'API n'accepte un avis que depuis une session client (`SessionClient`, le magic-link existant) dont le colis a un checkpoint `REMIS_AU_CLIENT`. On n'a donc pas besoin de nouveau compte acheteur au MVP. Aucune route de suppression n'est exposée au transitaire, la modération se fait côté plateforme. La note moyenne et le nombre d'avis sont dénormalisés sur `ProfilPublic` (mis à jour en transaction) pour que la liste reste rapide.
+
+**4. Recherche.** Au MVP, une requête Postgres simple suffit : filtres sur `LigneTransport` (mode, ville de départ) et `ZoneRetrait`, tri par délai, tarif ou note, index composites sur `(mode, villeDepart)`, paginé, sans moteur externe. On passera à `pg_trgm` pour la recherche par nom si besoin, et à un moteur dédié seulement avec des centaines de fiches. La mise en avant (P1) sera un champ `sponsoriseJusquau` sur le profil, toujours étiqueté dans la réponse API.
+
+**5. Ce qui change dans l'isolation multi-tenant.** C'est la première lecture **inter-tenants** de l'application. Elle passera par un module et un contrôleur `annuaire` séparés, en lecture seule, qui ne touchent qu'à `ProfilPublic`, `LigneTransport`, `ZoneRetrait` et `Avis` (modéré), jamais aux tables privées. On ajoutera un test e2e dédié : aucun champ privé ne sort de `/annuaire`. La règle produit « l'annuaire n'apparaît jamais sur `/suivi` ni sur Mes colis » est garantie côté API, puisque ces routes ne renvoient aucun lien vers d'autres tenants.
+
+**6. Hors MVP.** La demande de prise en charge (P1) sera une table `DemandePriseEnCharge` (acheteur → tenant, statut), qui pourra se convertir en `Client` + `Colis` chez le transitaire. Le paiement et la commission (P2) demanderont un vrai compte acheteur, non prévu ici.
