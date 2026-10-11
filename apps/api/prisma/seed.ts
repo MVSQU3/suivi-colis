@@ -100,6 +100,24 @@ async function main() {
     for (const nom of SITES) if (!exist.has(nom.toLowerCase())) await prisma.site.create({ data: { tenantId: t.id, nom } });
   }
 
+  // Rattache les checkpoints de demo sans site a un site plausible (statut + mode de transport)
+  const EXTRA = ['Aéroport Guangzhou Baiyun (CAN)', 'Magasin Treichville'];
+  for (const t of await prisma.tenant.findMany()) {
+    const exist = new Set((await prisma.site.findMany({ where: { tenantId: t.id } })).map((s) => s.nom.trim().toLowerCase()));
+    for (const nom of EXTRA) if (!exist.has(nom.toLowerCase())) await prisma.site.create({ data: { tenantId: t.id, nom } });
+    const sites = new Map((await prisma.site.findMany({ where: { tenantId: t.id } })).map((s) => [s.nom, s.id]));
+    const cps = await prisma.checkpoint.findMany({ where: { tenantId: t.id, siteId: null }, include: { lot: true, colis: true } });
+    for (const cp of cps) {
+      const air = (cp.lot?.mode ?? cp.colis?.mode) === 'AIR';
+      const nom = ({
+        RECU_ENTREPOT_CHINE: 'Entrepôt Guangzhou (Baiyun)', CHARGE_DANS_LOT: 'Entrepôt Guangzhou (Baiyun)', EXCEPTION: 'Entrepôt Guangzhou (Baiyun)',
+        PARTI_DE_CHINE: air ? 'Aéroport Guangzhou Baiyun (CAN)' : 'Port de Nansha',
+        ARRIVE_ABIDJAN: air ? 'Aéroport FHB' : "Port autonome d'Abidjan", EN_DEDOUANEMENT: air ? 'Aéroport FHB' : "Port autonome d'Abidjan",
+        DISPONIBLE_AU_RETRAIT: 'Magasin Treichville', REMIS_AU_CLIENT: 'Magasin Treichville',
+      } as Record<string, string>)[cp.statut];
+      if (nom && sites.get(nom)) await prisma.checkpoint.update({ where: { id: cp.id }, data: { siteId: sites.get(nom) } });
+    }
+  }
   const all = await prisma.colis.findMany({ include: { tenant: true }, orderBy: { createdAt: 'asc' } });
   console.log('\nCodes de suivi :');
   for (const c of all) console.log(`  ${c.trackingCode}  ${c.tenant.name.padEnd(24)} ${c.description}`);

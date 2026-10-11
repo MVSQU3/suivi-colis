@@ -123,7 +123,7 @@ export class PublicController {
       code, description: c.description, mode: c.mode, cartons: c.cartons,
       transitaire: { nom: c.tenant.name, telephone: c.tenant.phone, couleur: c.tenant.primaryColor },
       statutActuel: h.length ? { statut: h.at(-1)!.statut, libelle: h.at(-1)!.libelle } : null,
-      checkpoints: h.map((x) => ({ date: x.date, lieu: (x as { site?: { nom: string } | null }).site?.nom ?? 'En transit', statut: x.statut, libelle: x.libelle, ...(x.statut === 'EXCEPTION' ? { commentaire: x.commentaire } : {}) })),
+      checkpoints: h.map((x) => ({ date: x.date, lieu: (x as { site?: { nom: string } | null }).site?.nom ?? null, statut: x.statut, libelle: x.libelle, ...(x.statut === 'EXCEPTION' ? { commentaire: x.commentaire } : {}) })),
     };
   }
 }
