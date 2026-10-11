@@ -47,7 +47,7 @@ export default function ClientDetail({ params }: { params: { id: string } }) {
       {dlg === 'modifier' && <ModifierClient client={d} onClose={() => setDlg(null)} onDone={() => { setDlg(null); setOk('Client modifié.'); charger(); }} />}
       {(dlg === 'archiver' || dlg === 'desarchiver') && (
         <Confirmer titre={dlg === 'archiver' ? `Archiver ${d.fullName} ?` : `Désarchiver ${d.fullName} ?`}
-          texte={dlg === 'archiver' ? 'Le client disparaîtra de la liste des clients (filtre « Voir les archivés » pour le retrouver). Ses colis et leur historique sont conservés.' : 'Le client réapparaîtra dans la liste des clients.'}
+          texte={dlg === 'archiver' ? 'Le client disparaîtra de la liste des clients (filtre « Voir les archivés » pour le retrouver). Ses suivis de colis restent actifs ; il ne pourra plus accéder à « Mes colis ».' : 'Le client réapparaîtra dans la liste des clients.'}
           libelle={dlg === 'archiver' ? 'Archiver' : 'Désarchiver'} action={() => api(`/clients/${d.id}/${dlg}`, { method: 'POST' })}
           onClose={() => setDlg(null)} onDone={() => { setOk(dlg === 'archiver' ? 'Client archivé.' : 'Client désarchivé.'); setDlg(null); charger(); }} />
       )}
