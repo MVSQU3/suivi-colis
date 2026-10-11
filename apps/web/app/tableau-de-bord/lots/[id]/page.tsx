@@ -18,6 +18,8 @@ import { Pencil } from 'lucide-react';
 import { Archive } from 'lucide-react';
 import { Trash } from 'lucide-react';
 import { formatDate } from '@suivi-colis/shared';
+import { SelectionColis, colisAjoutes } from '@/components/SelectionColis';
+import { PackagePlus } from 'lucide-react';
 import { CheckpointForm, messageErreur, statutSuivant, type CheckpointBody } from '@/components/CheckpointForm';
 import { TimelineBO, type TimelineEntry } from '@/components/TimelineBO';
 import { Modal } from '@/components/Modal';
@@ -39,6 +41,10 @@ export default function LotDetail({ params }: { params: { id: string } }) {
   const [actionErr, setActionErr] = useState<string | null>(null);
   const [dlg, setDlg] = useState<'modifier' | 'cloturer' | 'rouvrir' | 'supprimer' | null>(null);
   const { responsable } = useRole();
+  const [ajoutColis, setAjoutColis] = useState(false);
+  const [selAjout, setSelAjout] = useState<Set<string>>(new Set());
+  const [ajoutBusy, setAjoutBusy] = useState(false);
+  const [ajoutErr, setAjoutErr] = useState<string | null>(null);
 
   const load = useCallback(() => {
     setErr(null);
@@ -56,7 +62,7 @@ export default function LotDetail({ params }: { params: { id: string } }) {
 
   async function majLot(body: CheckpointBody) {
     const r = await api<{ updatedCount: number }>(`/lots/${params.id}/checkpoints`, { method: 'POST', body: JSON.stringify(body) });
-    setOk(`Mise à jour appliquée à ${r.updatedCount} colis.`); setForm(false); await load();
+    setOk(r.updatedCount === 1 ? 'Mise à jour appliquée à 1 colis.' : `Mise à jour appliquée à ${r.updatedCount} colis.`); setForm(false); await load();
   }
   async function signaler(body: CheckpointBody) {
     if (!probleme) return;
@@ -71,8 +77,16 @@ export default function LotDetail({ params }: { params: { id: string } }) {
     if (!transfert || !cible) return;
     const ref = autres.find((l) => l.id === cible)?.reference;
     if (!window.confirm(`Transférer ${transfert.trackingCode} vers le lot ${ref} ?`)) return;
-    try { await api(`/lots/${cible}/colis`, { method: 'POST', body: JSON.stringify({ colisIds: [transfert.id] }) }); setOk(`${transfert.trackingCode} transféré vers ${ref}.`); setTransfert(null); await load(); }
+    try { await api<{ affectes: number }>(`/lots/${cible}/colis`, { method: 'POST', body: JSON.stringify({ colisIds: [transfert.id] }) }); setOk(`${transfert.trackingCode} transféré vers ${ref}.`); setTransfert(null); await load(); }
     catch (e) { setActionErr(messageErreur(e)); }
+  }
+  async function ajouterColis() {
+    if (selAjout.size === 0) return;
+    setAjoutBusy(true); setAjoutErr(null);
+    try {
+      const r = await api<{ affectes: number }>(`/lots/${params.id}/colis`, { method: 'POST', body: JSON.stringify({ colisIds: [...selAjout] }) });
+      setOk(`${colisAjoutes(r.affectes ?? selAjout.size)} au lot.`); setAjoutColis(false); setSelAjout(new Set()); await load();
+    } catch (e) { setAjoutErr(messageErreur(e)); } finally { setAjoutBusy(false); }
   }
   async function retirer(c: ColisLot) {
     if (!window.confirm(`Retirer ${c.trackingCode} du lot ${d!.reference} ? Le colis gardera son historique.`)) return;
@@ -134,7 +148,10 @@ export default function LotDetail({ params }: { params: { id: string } }) {
       )}
 
       <Card className="border-0">
-        <CardHeader><CardTitle className="text-base">Colis du lot ({n})</CardTitle></CardHeader>
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
+          <CardTitle className="text-base">Colis du lot ({n})</CardTitle>
+          {!cloture && <Button variant="outline" className="h-11" onClick={() => { setAjoutErr(null); setSelAjout(new Set()); setAjoutColis(true); }}><PackagePlus aria-hidden /> Ajouter des colis</Button>}
+        </CardHeader>
         <CardContent className="p-0">
           {n === 0 ? <p className="mx-4 mb-4 rounded-md bg-fond px-4 py-6 text-center text-sm text-gris-texte">Aucun colis dans ce lot.</p> : (
             <ul className="divide-y divide-gris/20">
@@ -172,6 +189,16 @@ export default function LotDetail({ params }: { params: { id: string } }) {
         <Modal titre={`Signaler un problème · ${probleme.trackingCode}`} onClose={() => setProbleme(null)}>
           <p className="mb-4 text-sm text-gris-texte">Une exception sur ce seul colis. Le message sera affiché à {probleme.client}.</p>
           <CheckpointForm mode="exception" submitLabel="Signaler le problème" onSubmit={signaler} onCancel={() => setProbleme(null)} />
+        </Modal>
+      )}
+      {ajoutColis && (
+        <Modal titre={`Ajouter des colis au lot ${d.reference}`} onClose={() => setAjoutColis(false)}>
+          <div className="-mx-5"><SelectionColis exclureLot={d.reference} sel={selAjout} onChange={setSelAjout} /></div>
+          {ajoutErr && <p className="mt-2 text-sm font-semibold text-alerte" role="alert">{ajoutErr}</p>}
+          <div className="sticky bottom-0 -mx-5 mt-3 flex gap-2 border-t border-gris/20 bg-white px-5 pt-3">
+            <Button size="lg" className="h-12 flex-1" disabled={ajoutBusy || selAjout.size === 0} onClick={() => void ajouterColis()}>{selAjout.size <= 1 ? 'Ajouter le colis' : `Ajouter ${selAjout.size} colis`}</Button>
+            <Button size="lg" variant="outline" className="h-12 bg-white" onClick={() => setAjoutColis(false)}>Annuler</Button>
+          </div>
         </Modal>
       )}
       {transfert && (

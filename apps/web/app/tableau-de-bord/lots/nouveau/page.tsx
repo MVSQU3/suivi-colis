@@ -1,15 +1,14 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft } from 'lucide-react';
 import { api, ApiError } from '@/lib/api';
-import { Badge } from '@/components/statut';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { messageErreur } from '@/components/CheckpointForm';
+import { SelectionColis } from '@/components/SelectionColis';
 
-interface ColisRow { id: string; trackingCode: string; description: string; client: string; lot: string | null; statutActuel: string | null }
 interface Lot { id: string; reference: string }
 
 export default function NouveauLot() {
@@ -20,10 +19,8 @@ export default function NouveauLot() {
   const [err, setErr] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [lot, setLot] = useState<Lot | null>(null);
-  const [colis, setColis] = useState<ColisRow[] | null>(null);
   const [sel, setSel] = useState<Set<string>>(new Set());
 
-  useEffect(() => { if (lot) api<ColisRow[]>('/colis').then(setColis).catch((e) => setErr({ global: messageErreur(e) })); }, [lot]);
 
   async function creer(e: React.FormEvent) {
     e.preventDefault();
@@ -49,26 +46,13 @@ export default function NouveauLot() {
   const fe = (k: string) => err[k] && <p className="mt-1 text-sm font-semibold text-alerte" role="alert">{err[k]}</p>;
 
   if (lot) {
-    const tries = [...(colis ?? [])].sort((a, b) => Number(!!a.lot) - Number(!!b.lot));
     return (
       <div className="mx-auto max-w-2xl space-y-4">
         <h1 className="text-2xl font-semibold">Lot {lot.reference} créé</h1>
         <Card className="border-0">
           <CardHeader><CardTitle className="text-base">Ajouter des colis existants</CardTitle><p className="text-sm text-gris-texte">Sélectionnez les colis à charger. Un colis déjà dans un autre lot y sera transféré.</p></CardHeader>
           <CardContent className="p-0">
-            {!colis ? <div className="mx-4 mb-4 h-40 animate-pulse rounded bg-fond" /> : tries.length === 0 ? <p className="mx-4 mb-4 rounded-md bg-fond px-4 py-6 text-center text-sm text-gris-texte">Aucun colis à ajouter.</p> : (
-              <ul className="divide-y divide-gris/20">
-                {tries.map((c) => (
-                  <li key={c.id}>
-                    <label className="flex min-h-14 cursor-pointer flex-wrap items-center gap-3 px-4 py-2 hover:bg-fond/60">
-                      <input type="checkbox" className="h-5 w-5 accent-fonce" checked={sel.has(c.id)} onChange={(e) => setSel((s) => { const n = new Set(s); if (e.target.checked) n.add(c.id); else n.delete(c.id); return n; })} />
-                      <span className="min-w-0 flex-1"><span className="block font-mono font-semibold">{c.trackingCode}</span><span className="text-sm text-gris-texte">{c.description} · {c.client}{c.lot ? ` · actuellement dans ${c.lot}` : ''}</span></span>
-                      <Badge statut={c.statutActuel} />
-                    </label>
-                  </li>
-                ))}
-              </ul>
-            )}
+            <SelectionColis sel={sel} onChange={setSel} />
           </CardContent>
         </Card>
         {fe('global')}

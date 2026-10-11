@@ -6,7 +6,7 @@ import { api, ApiError } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 
 export interface Site { id: string; nom: string; actif: boolean }
-export interface CheckpointBody { statut: string; siteId: string; date: string; commentaire?: string }
+export interface CheckpointBody { statut: string; siteId: string; date?: string; commentaire?: string }
 
 /** Libellé back-office (« Problème signalé » côté back-office ; le public voit « Ton colis est bloqué »). */
 export const libelleBO = (s: string) => (s === 'EXCEPTION' ? 'Problème signalé' : STATUT_META[s as StatutCheckpoint]?.libelle ?? s);
@@ -50,6 +50,8 @@ export function CheckpointForm({ mode, defaultStatut, submitLabel, confirmText, 
   const [statut, setStatut] = useState<string>(mode === 'exception' ? 'EXCEPTION' : defaultStatut ?? 'ARRIVE_ABIDJAN');
   const [siteId, setSiteId] = useState('');
   const [date, setDate] = useState(localNow());
+  // La date n'est envoyée que si l'utilisateur l'a changée : sinon l'API prend l'heure serveur (évite de rater un colis ajouté à la minute près).
+  const [dateModifiee, setDateModifiee] = useState(false);
   const [texte, setTexte] = useState('');
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -77,13 +79,15 @@ export function CheckpointForm({ mode, defaultStatut, submitLabel, confirmText, 
     if (!siteId) { setMsg('Choisissez un site.'); return; }
     if (exception && !texte.trim()) { setMsg('Écrivez le message affiché au client.'); return; }
     const d = new Date(date);
-    if (Number.isNaN(d.getTime())) { setMsg('Date invalide.'); return; }
-    if (d.getTime() > Date.now() + 60_000) { setMsg('La date ne peut pas être dans le futur.'); return; }
+    if (dateModifiee) {
+      if (Number.isNaN(d.getTime())) { setMsg('Date invalide.'); return; }
+      if (d.getTime() > Date.now() + 60_000) { setMsg('La date ne peut pas être dans le futur.'); return; }
+    }
     if (confirmText && !window.confirm(confirmText)) return;
     setBusy(true);
     try {
-      await onSubmit({ statut, siteId, date: d.toISOString(), ...(texte.trim() ? { commentaire: texte.trim() } : {}) });
-      setTexte(''); setDate(localNow());
+      await onSubmit({ statut, siteId, ...(dateModifiee ? { date: d.toISOString() } : {}), ...(texte.trim() ? { commentaire: texte.trim() } : {}) });
+      setTexte(''); setDate(localNow()); setDateModifiee(false);
     } catch (err) { setMsg(messageErreur(err)); } finally { setBusy(false); }
   }
 
@@ -120,7 +124,8 @@ export function CheckpointForm({ mode, defaultStatut, submitLabel, confirmText, 
       </div>
       <div>
         <label className={lbl} htmlFor="cp-date">Date</label>
-        <input id="cp-date" className="input h-11" type="datetime-local" value={date} max={localNow()} onChange={(e) => setDate(e.target.value)} required />
+        <input id="cp-date" className="input h-11" type="datetime-local" value={date} max={localNow()} onChange={(e) => { setDate(e.target.value); setDateModifiee(true); }} required />
+        {!dateModifiee && <p className="mt-1 text-xs text-gris-texte">Par défaut : maintenant (heure d’enregistrement).</p>}
       </div>
       <div>
         <label className={lbl} htmlFor="cp-texte">{exception ? 'Message affiché au client (obligatoire)' : 'Note interne (facultatif, non visible par le client)'}</label>

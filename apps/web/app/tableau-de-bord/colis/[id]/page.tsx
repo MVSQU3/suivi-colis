@@ -14,6 +14,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Pastille, Confirmer, Supprimer, ModifierClient, ModifierColis, ModifierLot } from '@/components/Gestion';
 import { useRole } from '@/lib/role';
+import { Modal } from '@/components/Modal';
+import { PackagePlus } from 'lucide-react';
+import { ArrowRightLeft } from 'lucide-react';
 import { Pencil } from 'lucide-react';
 import { Archive } from 'lucide-react';
 import { Trash } from 'lucide-react';
@@ -34,6 +37,11 @@ export default function ColisDetail({ params }: { params: { id: string } }) {
   const [form, setForm] = useState<'etape' | 'exception' | null>(null);
   const [dlg, setDlg] = useState<'modifier' | 'archiver' | 'desarchiver' | 'supprimer' | null>(null);
   const { responsable } = useRole();
+  const [choixLot, setChoixLot] = useState(false);
+  const [lots, setLots] = useState<{ id: string; reference: string; mode: string; clotureLe?: string | null }[] | null>(null);
+  const [cible, setCible] = useState('');
+  const [lotErr, setLotErr] = useState<string | null>(null);
+  const [lotBusy, setLotBusy] = useState(false);
 
   const load = useCallback(() => { setErr(null); return api<Detail>(`/colis/${params.id}`).then(setD).catch((e) => setErr(messageErreur(e))); }, [params.id]);
   useEffect(() => { void load(); }, [load]);
@@ -46,6 +54,22 @@ export default function ColisDetail({ params }: { params: { id: string } }) {
     setOk(body.statut === 'EXCEPTION' ? 'Problème signalé : le client voit votre message.' : 'Étape enregistrée.'); setForm(null); await load();
   }
   const affs = [...d.affectations].sort((a, b) => +new Date(b.debut) - +new Date(a.debut));
+  const lotActuel = affs.find((a) => !a.fin)?.lot ?? null;
+  async function ouvrirChoixLot() {
+    setChoixLot(true); setCible(''); setLotErr(null); setLots(null);
+    try { setLots((await api<{ id: string; reference: string; mode: string; clotureLe?: string | null }[]>('/lots')).filter((l) => !l.clotureLe && l.id !== lotActuel?.id)); }
+    catch (e) { setLotErr(messageErreur(e)); }
+  }
+  async function affecter() {
+    if (!cible) return;
+    const ref = lots?.find((l) => l.id === cible)?.reference;
+    setLotBusy(true); setLotErr(null);
+    try {
+      const r = await api<{ affectes: number }>(`/lots/${cible}/colis`, { method: 'POST', body: JSON.stringify({ colisIds: [d!.id] }) });
+      setOk(lotActuel ? `Colis transféré vers le lot ${ref}.` : `${r.affectes === 1 ? '1 colis ajouté' : `${r.affectes} colis ajoutés`} au lot ${ref}.`);
+      setChoixLot(false); await load();
+    } catch (e) { setLotErr(messageErreur(e)); } finally { setLotBusy(false); }
+  }
 
   return (
     <div className="space-y-5">
@@ -108,7 +132,12 @@ export default function ColisDetail({ params }: { params: { id: string } }) {
           <CardContent><TimelineBO items={d.historique} /></CardContent>
         </Card>
         <Card className="border-0">
-          <CardHeader><CardTitle className="text-base">Lots</CardTitle></CardHeader>
+          <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
+            <CardTitle className="text-base">Lots</CardTitle>
+            {!d.archivedAt && (lotActuel
+              ? <Button variant="outline" className="h-11" onClick={() => void ouvrirChoixLot()}><ArrowRightLeft aria-hidden /> Transférer</Button>
+              : <Button variant="outline" className="h-11" onClick={() => void ouvrirChoixLot()}><PackagePlus aria-hidden /> Ajouter au lot</Button>)}
+          </CardHeader>
           <CardContent>
             {affs.length === 0 ? <p className="text-sm text-gris-texte">Ce colis n’est dans aucun lot.</p> : (
               <ul className="space-y-3">
@@ -123,6 +152,22 @@ export default function ColisDetail({ params }: { params: { id: string } }) {
           </CardContent>
         </Card>
       </div>
+      {choixLot && (
+        <Modal titre={lotActuel ? `Transférer ${d.trackingCode}` : `Ajouter ${d.trackingCode} à un lot`} onClose={() => setChoixLot(false)}>
+          {lotActuel && <p className="mb-3 text-sm text-gris-texte">Le colis quittera le lot {lotActuel.reference}.</p>}
+          <label className="mb-1 block text-sm font-semibold" htmlFor="choix-lot">Lot</label>
+          <select id="choix-lot" className="input h-11" value={cible} onChange={(e) => setCible(e.target.value)} disabled={!lots}>
+            <option value="">{lots ? (lots.length ? 'Choisissez un lot…' : 'Aucun lot ouvert disponible') : 'Chargement…'}</option>
+            {(lots ?? []).map((l) => <option key={l.id} value={l.id}>{l.reference} · {l.mode === 'MER' ? 'Maritime' : 'Aérien'}</option>)}
+          </select>
+          <p className="mt-1 text-xs text-gris-texte">Les lots clôturés ne sont pas proposés.</p>
+          {lotErr && <p className="mt-2 text-sm font-semibold text-alerte" role="alert">{lotErr}</p>}
+          <div className="mt-4 flex gap-2">
+            <Button size="lg" className="h-12 flex-1" disabled={!cible || lotBusy} onClick={() => void affecter()}>{lotBusy ? 'Un instant…' : lotActuel ? 'Transférer' : 'Ajouter au lot'}</Button>
+            <Button size="lg" variant="outline" className="h-12 bg-white" onClick={() => setChoixLot(false)}>Annuler</Button>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
