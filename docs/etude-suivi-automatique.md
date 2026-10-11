@@ -2,6 +2,8 @@
 
 > Volet technique : COLIS-BACKEND. Volet tarifs et modèle économique : COLIS-PRODUIT. Rien n'est intégré pour l'instant.
 
+> **Décision (mise à jour) :** Vizion et ShipsGo sont présentés comme finalistes à égalité. Vizion n'a pas de prix public et son module aérien ne couvre pas Ethiopian. ShipsGo est le seul fournisseur avec un prix vérifié. On tranchera après le test de 10 à 20 vraies références (LTA Ethiopian comprises) et la réception des deux devis API.
+
 ## Partie 1 : volet technique
 
 # Étude technique : suivi automatique des lots Chine → Abidjan
