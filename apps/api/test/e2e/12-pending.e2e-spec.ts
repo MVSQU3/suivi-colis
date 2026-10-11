@@ -3,14 +3,6 @@ import { PrismaClient } from '@prisma/client';
 import { api, bootApp, login, resetDb, tokens } from './helpers';
 
 describe('12. En attente (fonctionnalites non livrees / problemes connus)', () => {
-  describe('magic-link client (route pas encore implementee)', () => {
-    it.todo('GET du lien magique ne consomme pas le jeton (prefetch des messageries)');
-    it.todo('premier POST consomme le jeton, second POST refuse');
-    it.todo('jeton expire refuse');
-    it.todo('jeton stocke hache en base (jamais en clair)');
-    it.todo('reponse de la demande identique que le telephone existe ou non (pas d enumeration)');
-  });
-
   describe('utilisateur desactive', () => {
     let app: INestApplication; const p = new PrismaClient();
     beforeAll(async () => { await resetDb(); app = await bootApp(); });
