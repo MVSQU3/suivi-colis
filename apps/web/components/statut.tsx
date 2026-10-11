@@ -29,5 +29,6 @@ function badgeStyle(couleur?: string): { background: string; color: string } {
   const c = (couleur ?? '').toUpperCase();
   if (c === '#009E60') return { background: '#007A4A', color: '#FFFFFF' };
   if (c === '#0B2545' || c === '#D62828') return { background: c, color: '#FFFFFF' };
+  if (c === '#3A86FF') return { background: '#DCE8FF', color: '#0B2545' }; // fonce sur info pur ~4,3:1 : fond bleu clair, texte fonce ~13:1
   return { background: couleur ?? '#8D99AE', color: '#0B2545' };
 }
