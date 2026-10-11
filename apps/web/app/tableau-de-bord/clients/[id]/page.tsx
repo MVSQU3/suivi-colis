@@ -13,6 +13,11 @@ import { useRole } from '@/lib/role';
 import { Pencil } from 'lucide-react';
 import { Archive } from 'lucide-react';
 import { Trash } from 'lucide-react';
+import { Send } from 'lucide-react';
+import { LogOut } from 'lucide-react';
+import { MessageCircle } from 'lucide-react';
+import { formatDate } from '@suivi-colis/shared';
+import { ApiError } from '@/lib/api';
 import { messageErreur } from '@/components/CheckpointForm';
 
 interface Detail { id: string; fullName: string; phone: string; email?: string | null; city?: string | null; archivedAt?: string | null; colis: { id: string; trackingCode: string; description: string; mode: string; createdAt: string }[] }
@@ -23,6 +28,16 @@ export default function ClientDetail({ params }: { params: { id: string } }) {
   const [dlg, setDlg] = useState<'modifier' | 'archiver' | 'desarchiver' | 'supprimer' | null>(null);
   const [ok, setOk] = useState<string | null>(null);
   const { responsable } = useRole();
+  const [lien, setLien] = useState<{ url: string; expireLe: string } | null>(null);
+  const [lienErr, setLienErr] = useState<string | null>(null);
+  const [envoi, setEnvoi] = useState(false);
+  const [confDeco, setConfDeco] = useState(false);
+  const envoyerLien = async () => {
+    setEnvoi(true); setLienErr(null); setLien(null);
+    try { setLien(await api<{ url: string; expireLe: string }>(`/clients/${params.id}/lien-acces`, { method: 'POST' })); }
+    catch (e) { setLienErr(e instanceof ApiError && e.status === 409 ? 'Désarchivez ce client pour lui envoyer un lien.' : messageErreur(e)); }
+    finally { setEnvoi(false); }
+  };
   const charger = () => { setErr(null); api<Detail>(`/clients/${params.id}`).then(setD).catch((e) => setErr(messageErreur(e))); };
   useEffect(charger, [params.id]);
   if (err) return <div className="flex flex-col items-start gap-3 rounded-lg bg-white p-6"><p className="font-semibold text-alerte">{err}</p><Button className="h-11" onClick={charger}><RefreshCw aria-hidden /> Réessayer</Button></div>;
@@ -42,6 +57,26 @@ export default function ClientDetail({ params }: { params: { id: string } }) {
             : <Button variant="outline" className="h-11" onClick={() => setDlg('archiver')}><Archive aria-hidden /> Archiver</Button>)}
           {responsable && <Button variant="outline" className="h-11 text-alerte" onClick={() => setDlg('supprimer')}><Trash aria-hidden /> Supprimer</Button>}
         </div>
+        {!d.archivedAt && (
+          <div className="mt-3 space-y-2 border-t border-gris/20 pt-3">
+            <p className="text-sm font-semibold">Accès « Mes colis » du client</p>
+            <div className="flex flex-wrap gap-2">
+              <Button size="lg" variant="secondary" className="h-11" onClick={envoyerLien} disabled={envoi}><Send aria-hidden /> {envoi ? 'Création du lien…' : 'Envoyer le lien d’accès'}</Button>
+              <Button size="lg" variant="outline" className="h-11" onClick={() => setConfDeco(true)}><LogOut aria-hidden /> Déconnecter ce client</Button>
+            </div>
+            {lienErr && <p role="alert" className="text-sm font-semibold text-alerte">{lienErr}</p>}
+            {lien && (() => {
+              const msg = `Bonjour ${d.fullName}, voici votre lien pour suivre tous vos colis : ${lien.url}\nIl est valable 48 h (jusqu’au ${formatDate(lien.expireLe)}) et ne fonctionne qu’une seule fois.`;
+              return (
+                <div className="space-y-2 rounded-md bg-fond p-4">
+                  <p className="text-sm">Lien créé, valable 48 h (jusqu’au <strong>{formatDate(lien.expireLe)}</strong>). Un nouveau lien remplace le précédent.</p>
+                  <p className="break-all font-mono text-xs text-gris-texte">{lien.url}</p>
+                  <Button asChild size="lg" variant="success" className="h-11"><a href={`https://wa.me/${d.phone.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`} target="_blank" rel="noopener noreferrer"><MessageCircle aria-hidden /> Envoyer sur WhatsApp</a></Button>
+                </div>
+              );
+            })()}
+          </div>
+        )}
       </CardContent></Card>
       {ok && <p className="rounded-md bg-succes/10 px-4 py-3 text-sm font-semibold text-succes-fonce" role="status">{ok}</p>}
       {dlg === 'modifier' && <ModifierClient client={d} onClose={() => setDlg(null)} onDone={() => { setDlg(null); setOk('Client modifié.'); charger(); }} />}
@@ -50,6 +85,11 @@ export default function ClientDetail({ params }: { params: { id: string } }) {
           texte={dlg === 'archiver' ? 'Le client disparaîtra de la liste des clients (filtre « Voir les archivés » pour le retrouver). Ses suivis de colis restent actifs ; il ne pourra plus accéder à « Mes colis ».' : 'Le client réapparaîtra dans la liste des clients.'}
           libelle={dlg === 'archiver' ? 'Archiver' : 'Désarchiver'} action={() => api(`/clients/${d.id}/${dlg}`, { method: 'POST' })}
           onClose={() => setDlg(null)} onDone={() => { setOk(dlg === 'archiver' ? 'Client archivé.' : 'Client désarchivé.'); setDlg(null); charger(); }} />
+      )}
+      {confDeco && (
+        <Confirmer titre={`Déconnecter ${d.fullName} ?`} texte="Le client n’aura plus accès à « Mes colis » sur ses appareils. Ses suivis de colis restent actifs ; il faudra lui envoyer un nouveau lien."
+          libelle="Déconnecter" danger action={async () => { const r = await api<{ sessionsRevoquees: number }>(`/clients/${d.id}/deconnecter`, { method: 'POST' }); const n = r.sessionsRevoquees ?? 0; setOk(n === 0 ? 'Aucune session ouverte : le client n’était pas connecté.' : `Client déconnecté (${n} session${n > 1 ? 's' : ''} fermée${n > 1 ? 's' : ''}).`); }}
+          onClose={() => setConfDeco(false)} onDone={() => setConfDeco(false)} />
       )}
       {dlg === 'supprimer' && (
         <Supprimer entite="clients" id={d.id} nom={d.fullName} onClose={() => setDlg(null)}

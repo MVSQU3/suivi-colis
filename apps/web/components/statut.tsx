@@ -1,10 +1,10 @@
 import { STATUT_META, formatDate, type StatutCheckpoint } from '@suivi-colis/shared';
-export function Badge({ statut }: { statut: string | null }) {
+export function Badge({ statut, label }: { statut: string | null; label?: string }) {
   if (!statut) return <span className="text-gris-texte">—</span>;
   const m = STATUT_META[statut as StatutCheckpoint];
   const s = badgeStyle(m?.couleur);
   // Back-office : l'exception s'affiche « Problème signalé » (shared inchangé).
-  const lib = statut === 'EXCEPTION' ? 'Problème signalé' : m?.libelle ?? statut;
+  const lib = label ?? (statut === 'EXCEPTION' ? 'Problème signalé' : m?.libelle ?? statut);
   return <span className="inline-block rounded-full px-2 py-0.5 text-xs font-semibold" style={s}>{lib}</span>;
 }
 export interface TimelineItem { date: string; lieu: string; statut: string; libelle: string; commentaire?: string | null }
