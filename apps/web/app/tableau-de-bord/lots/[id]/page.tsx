@@ -97,9 +97,9 @@ export default function LotDetail({ params }: { params: { id: string } }) {
 
       {form && (
         <Card className="border-2 border-primaire">
-          <CardHeader><CardTitle className="text-base">Mettre à jour tout le lot</CardTitle><p className="text-sm text-gris-texte">{n} colis concernés : chacun recevra cette étape.</p></CardHeader>
+          <CardHeader><CardTitle className="text-base">Mettre à jour tout le lot</CardTitle><p className="text-sm text-gris-texte">{n === 1 ? '1 colis concerné' : `${n} colis concernés`} · Visible par {n === 1 ? 'le client' : `les ${n} clients`} de ce lot</p></CardHeader>
           <CardContent>
-            <CheckpointForm mode="lot" defaultStatut={statutSuivant(actuel)} submitLabel={`Appliquer aux ${n} colis`}
+            <CheckpointForm mode="lot" defaultStatut={statutSuivant(actuel)} submitLabel={n === 1 ? 'Appliquer au colis' : `Appliquer aux ${n} colis`}
               confirmText={`Cette mise à jour sera visible par ${n === 1 ? 'le client' : `les ${n} clients`} de ce lot. Confirmer ?`} onSubmit={majLot} onCancel={() => setForm(false)} />
           </CardContent>
         </Card>
@@ -150,7 +150,7 @@ export default function LotDetail({ params }: { params: { id: string } }) {
         <Modal titre={`Transférer ${transfert.trackingCode}`} onClose={() => setTransfert(null)}>
           <label className="mb-1 block text-sm font-semibold" htmlFor="cible">Lot de destination</label>
           <select id="cible" className="input h-11" value={cible} onChange={(e) => setCible(e.target.value)}>
-            <option value="">Choisis un lot…</option>
+            <option value="">Choisissez un lot…</option>
             {autres.map((l) => <option key={l.id} value={l.id}>{l.reference}</option>)}
           </select>
           {actionErr && <p className="mt-2 text-sm font-semibold text-alerte" role="alert">{actionErr}</p>}

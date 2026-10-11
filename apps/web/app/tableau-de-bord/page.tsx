@@ -34,7 +34,7 @@ export default function Dashboard() {
       .then(([stats, colis, lots, clients]) => setData({ stats, colis, lots, clients }))
       .catch((e: unknown) => {
         if (e instanceof ApiError && e.status === 401) return; // api() redirige vers /connexion
-        setErreur('Impossible de charger le tableau de bord. Vérifie ta connexion et réessaie.');
+        setErreur('Impossible de charger le tableau de bord. Vérifiez votre connexion et réessayez.');
       });
   }
   useEffect(charger, []);
@@ -57,7 +57,7 @@ export default function Dashboard() {
     { label: 'Lots', valeur: stats.lots, icon: Boxes, ton: 'bg-primaire/15 text-fonce' },
     { label: 'Clients', valeur: stats.clients, icon: Users, ton: 'bg-succes/15 text-succes-fonce' },
     { label: 'En transit', valeur: transit, icon: Truck, ton: 'bg-fonce/10 text-fonce' },
-    { label: 'En exception', valeur: exception, icon: AlertTriangle, ton: 'bg-alerte/10 text-alerte' },
+    { label: 'Problèmes signalés', valeur: exception, icon: AlertTriangle, ton: 'bg-alerte/10 text-alerte' },
   ];
   const lotRecent = lots[0];
 
@@ -66,7 +66,7 @@ export default function Dashboard() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold">Tableau de bord</h1>
-          <p className="text-sm text-gris-texte">Vue d’ensemble de tes expéditions</p>
+          <p className="text-sm text-gris-texte">Vue d’ensemble de vos expéditions</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button asChild size="lg" className="h-11"><Link href="/tableau-de-bord/lots"><Plus aria-hidden /> Nouveau lot</Link></Button>

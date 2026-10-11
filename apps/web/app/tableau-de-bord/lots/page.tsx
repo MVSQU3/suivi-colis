@@ -19,7 +19,7 @@ export default function LotsPage() {
   useEffect(charger, []);
   return (
     <div className="space-y-4">
-      <div><h1 className="text-2xl font-semibold">Lots</h1><p className="text-sm text-gris-texte">Conteneurs et LTA : mets à jour tous leurs colis d’un coup.</p></div>
+      <div><h1 className="text-2xl font-semibold">Lots</h1><p className="text-sm text-gris-texte">Conteneurs et LTA : mettez à jour tous leurs colis d’un coup.</p></div>
       {err ? <Erreur msg={err} retry={charger} /> : !lots ? <div className="h-64 animate-pulse rounded-lg bg-white" /> : lots.length === 0 ? (
         <p className="rounded-lg bg-white px-4 py-10 text-center text-gris-texte">Aucun lot pour le moment.</p>
       ) : (

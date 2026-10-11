@@ -74,8 +74,8 @@ export default function BackOfficeLayout({ children }: { children: ReactNode }) 
         </div>
       )}
 
-      <div className="lg:pl-60">
-        <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-gris/30 bg-white px-4 lg:px-8">
+      <div className="pt-16 lg:pl-60">
+        <header className="fixed inset-x-0 top-0 z-30 lg:left-60 flex h-16 items-center gap-3 border-b border-gris/30 bg-white px-4 lg:px-8">
           <button className="flex h-11 w-11 items-center justify-center rounded-md text-fonce hover:bg-fond lg:hidden" aria-label="Ouvrir le menu" aria-expanded={ouvert} onClick={() => setOuvert(true)}>
             <Menu className="h-6 w-6" aria-hidden />
           </button>

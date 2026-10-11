@@ -35,7 +35,7 @@ export default function ColisDetail({ params }: { params: { id: string } }) {
 
   async function poster(body: CheckpointBody) {
     await api(`/colis/${params.id}/checkpoints`, { method: 'POST', body: JSON.stringify(body) });
-    setOk(body.statut === 'EXCEPTION' ? 'Problème signalé : le client voit ton message.' : 'Étape enregistrée.'); setForm(null); await load();
+    setOk(body.statut === 'EXCEPTION' ? 'Problème signalé : le client voit votre message.' : 'Étape enregistrée.'); setForm(null); await load();
   }
   const affs = [...d.affectations].sort((a, b) => +new Date(b.debut) - +new Date(a.debut));
 

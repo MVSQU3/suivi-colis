@@ -8,8 +8,8 @@ import { Button } from '@/components/ui/button';
 export interface Site { id: string; nom: string; actif: boolean }
 export interface CheckpointBody { statut: string; siteId: string; date: string; commentaire?: string }
 
-/** Libellé back-office (le public voit « Ton colis est bloqué » pour EXCEPTION). */
-export const libelleBO = (s: string) => (s === 'EXCEPTION' ? 'Exception / incident' : STATUT_META[s as StatutCheckpoint]?.libelle ?? s);
+/** Libellé back-office (« Problème signalé » côté back-office ; le public voit « Ton colis est bloqué »). */
+export const libelleBO = (s: string) => (s === 'EXCEPTION' ? 'Problème signalé' : STATUT_META[s as StatutCheckpoint]?.libelle ?? s);
 
 /** Statut suivant dans la liste ordonnée (étape + 1), à partir du statut actuel. */
 export function statutSuivant(actuel: string | null | undefined): string {
@@ -20,12 +20,12 @@ export function statutSuivant(actuel: string | null | undefined): string {
 
 /** Messages d'erreur API lisibles. */
 export function messageErreur(e: unknown): string {
-  if (!(e instanceof ApiError)) return 'Impossible de joindre le serveur. Vérifie ta connexion et réessaie.';
+  if (!(e instanceof ApiError)) return 'Impossible de joindre le serveur. Vérifiez votre connexion et réessayez.';
   const m = e.message.toLowerCase();
   if (m.includes('futur')) return 'La date ne peut pas être dans le futur.';
-  if (m.includes('desactive') || m.includes('désactivé')) return 'Ce site est désactivé : choisis un site actif.';
-  if (e.status === 404 && m.includes('site')) return 'Ce site n’existe pas (ou plus). Recharge la page et choisis un autre site.';
-  if (m.includes('siteid')) return 'Choisis un site.';
+  if (m.includes('desactive') || m.includes('désactivé')) return 'Ce site est désactivé : choisissez un site actif.';
+  if (e.status === 404 && m.includes('site')) return 'Ce site n’existe pas (ou plus). Rechargez la page et choisissez un autre site.';
+  if (m.includes('siteid')) return 'Choisissez un site.';
   if (m.includes('commentaire')) return 'Un message pour le client est obligatoire pour une exception.';
   if (e.status === 409) return 'Un site porte déjà ce nom (même avec une casse ou des espaces différents).';
   if (m.includes('exception se déclare') || m.includes('exception se declare')) return 'Une exception se déclare sur un colis, pas sur un lot.';
@@ -73,8 +73,8 @@ export function CheckpointForm({ mode, defaultStatut, submitLabel, confirmText, 
 
   async function envoyer(e: React.FormEvent) {
     e.preventDefault(); setMsg(null);
-    if (!siteId) { setMsg('Choisis un site.'); return; }
-    if (exception && !texte.trim()) { setMsg('Écris le message affiché au client.'); return; }
+    if (!siteId) { setMsg('Choisissez un site.'); return; }
+    if (exception && !texte.trim()) { setMsg('Écrivez le message affiché au client.'); return; }
     const d = new Date(date);
     if (Number.isNaN(d.getTime())) { setMsg('Date invalide.'); return; }
     if (d.getTime() > Date.now() + 60_000) { setMsg('La date ne peut pas être dans le futur.'); return; }
@@ -100,10 +100,10 @@ export function CheckpointForm({ mode, defaultStatut, submitLabel, confirmText, 
       <div>
         <label className={lbl} htmlFor="cp-site">Site</label>
         <select id="cp-site" className="input h-11" value={siteId} onChange={(e) => setSiteId(e.target.value)} required disabled={!sites}>
-          <option value="">{sites ? 'Choisis un site…' : 'Chargement des sites…'}</option>
+          <option value="">{sites ? 'Choisissez un site…' : 'Chargement des sites…'}</option>
           {actifs.map((s) => <option key={s.id} value={s.id}>{s.nom}</option>)}
         </select>
-        <p className="mt-1 text-xs text-gris-texte">Visible par le client : choisis la ville ou le site.</p>
+        <p className="mt-1 text-xs text-gris-texte">Visible par le client : choisissez la ville ou le site.</p>
         {!ajout ? (
           <button type="button" className="mt-1 inline-flex min-h-11 items-center gap-1 text-sm font-semibold text-fonce underline underline-offset-2" onClick={() => setAjout(true)}>
             <Plus className="h-4 w-4" aria-hidden /> Ajouter un site
@@ -122,9 +122,9 @@ export function CheckpointForm({ mode, defaultStatut, submitLabel, confirmText, 
         <input id="cp-date" className="input h-11" type="datetime-local" value={date} max={localNow()} onChange={(e) => setDate(e.target.value)} required />
       </div>
       <div>
-        <label className={lbl} htmlFor="cp-texte">{exception ? 'Message affiché au client (obligatoire)' : 'Note interne (non visible par le client)'}</label>
+        <label className={lbl} htmlFor="cp-texte">{exception ? 'Message affiché au client (obligatoire)' : 'Note interne (facultatif, non visible par le client)'}</label>
         <textarea id="cp-texte" className="input min-h-[80px]" value={texte} onChange={(e) => setTexte(e.target.value)} required={exception}
-          placeholder={exception ? 'Ex. : produits liquides refusés au fret aérien, on attend tes consignes.' : 'Facultatif'} />
+          placeholder={exception ? 'Ex. : produits liquides refusés au fret aérien, nous attendons vos consignes.' : '(facultatif)'} />
       </div>
       {msg && <p className="rounded-md bg-alerte/10 px-3 py-2 text-sm font-semibold text-alerte" role="alert">{msg}</p>}
       <div className="flex flex-wrap gap-2">
