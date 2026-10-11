@@ -28,7 +28,7 @@ export default function ColisPage() {
       <div className="flex flex-wrap items-end justify-between gap-3"><div><h1 className="text-2xl font-semibold">Colis</h1><p className="text-sm text-gris-texte">Les colis avec un problème signalé apparaissent en premier.</p></div><Button asChild size="lg" className="h-11"><Link href="/tableau-de-bord/colis/nouveau"><Plus aria-hidden /> Nouveau colis</Link></Button></div>
       <label className="relative block">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gris-texte" aria-hidden />
-        <input className="input h-11 pl-9" placeholder="Rechercher un code, un client, un lot…" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Rechercher" />
+        <input className="input h-11 !pl-10" placeholder="Rechercher un code, un client, un lot…" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Rechercher" />
       </label>
       {err ? (
         <div className="flex flex-col items-start gap-3 rounded-lg bg-white p-6"><p className="font-semibold text-alerte">{err}</p><Button className="h-11" onClick={charger}><RefreshCw aria-hidden /> Réessayer</Button></div>

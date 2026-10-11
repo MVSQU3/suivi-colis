@@ -1,7 +1,7 @@
 import { cache } from 'react';
 import { API_URL } from '@/lib/api';
 
-export interface SuiviCheckpoint { date: string; lieu: string; statut: string; libelle: string; commentaire?: string | null }
+export interface SuiviCheckpoint { date: string; lieu: string | null; statut: string; libelle: string; commentaire?: string | null }
 export interface Suivi { transitaire: { nom: string; telephone?: string | null }; statutActuel: string; checkpoints: SuiviCheckpoint[] }
 export type SuiviResult = { ok: true; data: Suivi } | { ok: false; kind: 'introuvable' | 'trop' | 'reseau' };
 

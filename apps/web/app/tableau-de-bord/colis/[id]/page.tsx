@@ -7,6 +7,7 @@ import { ChevronLeft } from 'lucide-react';
 import { ExternalLink } from 'lucide-react';
 import { Plus } from 'lucide-react';
 import { formatDate } from '@suivi-colis/shared';
+import { formatTelephone } from '@/lib/format';
 import { api } from '@/lib/api';
 import { Badge } from '@/components/statut';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -52,7 +53,7 @@ export default function ColisDetail({ params }: { params: { id: string } }) {
             </div>
             <Badge statut={d.statutActuel} />
           </div>
-          <p className="text-sm"><span className="font-semibold">{d.client.fullName}</span>{d.client.city ? ` · ${d.client.city}` : ''}{d.client.phone ? ` · ${d.client.phone}` : ''}</p>
+          <p className="text-sm"><span className="font-semibold">{d.client.fullName}</span>{d.client.city ? ` · ${d.client.city}` : ''}{d.client.phone ? ` · ${formatTelephone(d.client.phone)}` : ''}</p>
           <a className="inline-flex min-h-11 items-center gap-1 text-sm font-semibold text-fonce underline underline-offset-2" href={`/suivi/${d.trackingCode}`} target="_blank" rel="noreferrer">
             <ExternalLink className="h-4 w-4" aria-hidden /> Voir la page client
           </a>

@@ -19,7 +19,7 @@ export function TimelineBO({ items }: { items: TimelineEntry[] }) {
             <div className="min-w-0">
               <p className={cn('font-semibold', ex && 'text-alerte')}>{libelleBO(c.statut)}</p>
               <p className="text-sm text-gris-texte">
-                {formatDate(c.date)} · {c.site?.nom ?? <span title="Ancien lieu libre (interne)">{c.lieu || 'Site non renseigné'}</span>}
+                {formatDate(c.date)}{(c.site?.nom || c.lieu) ? ` · ${c.site?.nom || c.lieu}` : ''}
                 {c.source === 'LOT' && ' · via le lot'}
               </p>
               {c.commentaire && <p className="mt-1 text-sm">{ex ? 'Message client : ' : 'Note interne : '}{c.commentaire}</p>}

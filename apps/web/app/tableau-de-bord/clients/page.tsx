@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Search } from 'lucide-react';
 import { Plus } from 'lucide-react';
 import { RefreshCw } from 'lucide-react';
+import { formatTelephone } from '@/lib/format';
 import { api } from '@/lib/api';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -32,7 +33,7 @@ export default function ClientsPage() {
       {ok && <p className="rounded-md bg-succes/10 px-4 py-3 text-sm font-semibold text-succes-fonce" role="status">{ok}</p>}
       <label className="relative block">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gris-texte" aria-hidden />
-        <input className="input h-11 pl-9" placeholder="Rechercher par nom ou téléphone…" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Rechercher un client" />
+        <input className="input h-11 !pl-10" placeholder="Rechercher par nom ou téléphone…" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Rechercher un client" />
       </label>
       {err ? (
         <div className="flex flex-col items-start gap-3 rounded-lg bg-white p-6"><p className="font-semibold text-alerte">{err}</p><Button className="h-11" onClick={charger}><RefreshCw aria-hidden /> Réessayer</Button></div>
@@ -45,7 +46,7 @@ export default function ClientsPage() {
               <li key={c.id}>
                 <Link href={`/tableau-de-bord/clients/${c.id}`} className="flex min-h-16 flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-3 hover:bg-fond/60">
                   <span className="font-semibold">{c.fullName}</span>
-                  <span className="text-sm text-gris-texte">{[c.city, c.phone].filter(Boolean).join(' · ')}</span>
+                  <span className="text-sm text-gris-texte">{[c.city, formatTelephone(c.phone)].filter(Boolean).join(' · ')}</span>
                 </Link>
               </li>
             ))}

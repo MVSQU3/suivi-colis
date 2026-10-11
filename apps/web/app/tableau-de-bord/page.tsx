@@ -10,6 +10,7 @@ import { Plus } from 'lucide-react';
 import { RefreshCw } from 'lucide-react';
 import { Ship } from 'lucide-react';
 import { Plane } from 'lucide-react';
+import { formatTelephone } from '@/lib/format';
 import { api, ApiError } from '@/lib/api';
 import { Badge } from '@/components/statut';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -142,7 +143,7 @@ export default function Dashboard() {
                 {clients.map((c) => (
                   <li key={c.id} className="flex flex-wrap items-center justify-between gap-2 py-3">
                     <span className="font-semibold">{c.fullName}</span>
-                    <span className="text-sm text-gris-texte">{[c.city, c.phone].filter(Boolean).join(' · ')}</span>
+                    <span className="text-sm text-gris-texte">{[c.city, formatTelephone(c.phone)].filter(Boolean).join(' · ')}</span>
                   </li>
                 ))}
               </ul>

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { ChevronLeft } from 'lucide-react';
 import { Plus } from 'lucide-react';
 import { RefreshCw } from 'lucide-react';
+import { formatTelephone } from '@/lib/format';
 import { api } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -24,7 +25,7 @@ export default function ClientDetail({ params }: { params: { id: string } }) {
       <Link href="/tableau-de-bord/clients" className="inline-flex min-h-11 items-center gap-1 text-sm font-semibold text-gris-texte hover:text-fonce"><ChevronLeft className="h-4 w-4" aria-hidden /> Tous les clients</Link>
       <Card className="border-0"><CardContent className="space-y-1 p-5">
         <h1 className="text-xl font-semibold">{d.fullName}</h1>
-        <p className="text-sm text-gris-texte">{[d.phone, d.email, d.city].filter(Boolean).join(' · ')}</p>
+        <p className="text-sm text-gris-texte">{[formatTelephone(d.phone), d.email, d.city].filter(Boolean).join(' · ')}</p>
         <div className="pt-3"><Button asChild size="lg" className="h-11"><Link href={`/tableau-de-bord/colis/nouveau?client=${d.id}`}><Plus aria-hidden /> Nouveau colis pour ce client</Link></Button></div>
       </CardContent></Card>
       <Card className="border-0">

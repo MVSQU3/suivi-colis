@@ -8,6 +8,7 @@ import { Check } from 'lucide-react';
 import { Copy } from 'lucide-react';
 import { MessageCircle } from 'lucide-react';
 import { api, ApiError } from '@/lib/api';
+import { formatTelephone, siteUrl } from '@/lib/format';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Modal } from '@/components/Modal';
@@ -72,7 +73,7 @@ function NouveauColis() {
   }
 
   if (cree) {
-    const url = `${window.location.origin}/suivi/${cree.colis.trackingCode}`;
+    const url = `${siteUrl()}/suivi/${cree.colis.trackingCode}`;
     const tel = (cree.client.phone ?? '').replace(/\D/g, '');
     const texte = `Bonjour ${cree.client.fullName}, votre colis est enregistré. Suivez-le ici : ${url}`;
     return (
@@ -81,7 +82,7 @@ function NouveauColis() {
           <p className="text-sm font-semibold text-succes-fonce">Colis créé pour {cree.client.fullName}</p>
           <p className="text-sm text-gris-texte">Code de suivi</p>
           <p className="break-all font-mono text-3xl font-semibold tracking-wider">{cree.colis.trackingCode}</p>
-          <p className="break-all text-sm text-gris-texte">{url}</p>
+          <p className="text-sm text-gris-texte">{url.slice(0, url.lastIndexOf('/') + 1)}<wbr /><span className="whitespace-nowrap">{cree.colis.trackingCode}</span></p>
           <div className="flex flex-col gap-2">
             <Button size="lg" variant="outline" className="h-12 bg-white" onClick={async () => { try { await navigator.clipboard.writeText(url); setCopie(true); setTimeout(() => setCopie(false), 2000); } catch { window.prompt('Copiez ce lien :', url); } }}>
               {copie ? <Check aria-hidden /> : <Copy aria-hidden />} {copie ? 'Lien copié' : 'Copier le lien de suivi'}
@@ -110,7 +111,7 @@ function NouveauColis() {
             <label className={lbl} htmlFor="c-client">Client</label>
             {client ? (
               <div className="flex items-center justify-between gap-2 rounded-md border border-gris/50 bg-fond px-3 py-2">
-                <span><span className="font-semibold">{client.fullName}</span><span className="block text-sm text-gris-texte">{client.phone}</span></span>
+                <span><span className="font-semibold">{client.fullName}</span><span className="block text-sm text-gris-texte">{formatTelephone(client.phone)}</span></span>
                 <Button type="button" variant="ghost" className="h-11" onClick={() => { setClient(null); setQ(''); }}>Changer</Button>
               </div>
             ) : (
@@ -118,7 +119,7 @@ function NouveauColis() {
                 <input id="c-client" className="input h-11" placeholder={clients ? 'Nom ou téléphone…' : 'Chargement…'} value={q} onChange={(e) => setQ(e.target.value)} autoComplete="off" disabled={!clients} />
                 {suggestions.length > 0 && (
                   <ul className="mt-1 divide-y divide-gris/20 rounded-md border border-gris/40 bg-white">
-                    {suggestions.map((c) => <li key={c.id}><button type="button" className="flex min-h-11 w-full items-center justify-between gap-2 px-3 py-2 text-left hover:bg-fond" onClick={() => { setClient(c); setErr((x) => ({ ...x, client: '' })); }}><span className="font-semibold">{c.fullName}</span><span className="text-sm text-gris-texte">{c.phone}</span></button></li>)}
+                    {suggestions.map((c) => <li key={c.id}><button type="button" className="flex min-h-11 w-full items-center justify-between gap-2 px-3 py-2 text-left hover:bg-fond" onClick={() => { setClient(c); setErr((x) => ({ ...x, client: '' })); }}><span className="font-semibold">{c.fullName}</span><span className="text-sm text-gris-texte">{formatTelephone(c.phone)}</span></button></li>)}
                   </ul>
                 )}
                 {q.trim() && clients && suggestions.length === 0 && <p className="mt-1 text-sm text-gris-texte">Aucun client trouvé.</p>}
