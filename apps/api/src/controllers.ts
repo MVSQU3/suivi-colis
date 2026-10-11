@@ -43,7 +43,7 @@ export class BackOfficeController {
   @Get('dashboard/stats')
   async stats(@TenantId() tenantId: string) {
     const [clients, lots, colis] = await Promise.all([
-      this.prisma.client.count({ where: { tenantId } }), this.prisma.lot.count({ where: { tenantId } }),
+      this.prisma.client.count({ where: { tenantId, archivedAt: null } }), this.prisma.lot.count({ where: { tenantId } }),
       this.prisma.colis.findMany({ where: { tenantId, archivedAt: null }, select: { id: true } }),
     ]);
     const parStatut: Record<string, number> = {};
