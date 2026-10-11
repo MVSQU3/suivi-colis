@@ -1,7 +1,32 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-body { @apply bg-fond text-fonce; font-family: Inter, system-ui, sans-serif; }
+
+/* Variables shadcn/ui mappées sur la charte (HSL sans hsl()). */
+@layer base {
+  :root {
+    --background: 38 39% 94%;        /* fond #F5F1EA */
+    --foreground: 213 73% 16%;       /* fonce #0B2545 */
+    --card: 0 0% 100%;
+    --card-foreground: 213 73% 16%;
+    --primary: 31 100% 48%;          /* primaire #F77F00 (texte fonce dessus) */
+    --primary-foreground: 213 73% 16%;
+    --secondary: 213 73% 16%;        /* fonce, texte blanc */
+    --secondary-foreground: 0 0% 100%;
+    --muted: 38 30% 90%;
+    --muted-foreground: 220 15% 42%; /* gris-texte #5C677D */
+    --accent: 38 30% 90%;
+    --accent-foreground: 213 73% 16%;
+    --destructive: 0 69% 50%;        /* alerte #D62828 */
+    --destructive-foreground: 0 0% 100%;
+    --border: 218 17% 62%;           /* gris #8D99AE */
+    --input: 218 17% 62%;
+    --ring: 218 100% 61%;            /* info #3A86FF */
+    --radius: 0.75rem;
+  }
+}
+
+body { @apply bg-fond text-fonce font-sans; }
 .btn { @apply rounded-lg bg-primaire px-4 py-2 font-semibold text-fonce disabled:opacity-50; }
 .input { @apply w-full rounded-lg border border-gris/50 bg-white px-3 py-2; }
 .card { @apply rounded-xl bg-white p-4 shadow-sm; }

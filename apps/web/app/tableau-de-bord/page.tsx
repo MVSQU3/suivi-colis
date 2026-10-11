@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { libelleStatut } from '@suivi-colis/shared';
 import { api, getToken, setToken } from '@/lib/api';
-import { Badge } from '@/components/ui';
+import { Badge } from '@/components/statut';
 interface Stats { clients: number; lots: number; colis: number; parStatut: Record<string, number> }
 interface ColisRow { id: string; trackingCode: string; description: string; client: string; lot: string | null; statutActuel: string | null }
 interface LotRow { id: string; reference: string; mode: string; nbColis: number; dernierStatut: string | null }

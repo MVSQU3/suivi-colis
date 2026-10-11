@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { formatDate } from '@suivi-colis/shared';
 import { api } from '@/lib/api';
-import { Badge, Timeline, type TimelineItem } from '@/components/ui';
+import { Badge, Timeline, type TimelineItem } from '@/components/statut';
 import { CheckpointForm } from '@/components/CheckpointForm';
 interface Detail { trackingCode: string; description: string; mode: string; cartons: number; client: { fullName: string; phone: string }; statutActuel: string | null; historique: TimelineItem[]; affectations: { debut: string; fin: string | null; lot: { reference: string } }[] }
 export default function ColisPage({ params }: { params: { id: string } }) {

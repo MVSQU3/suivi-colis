@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { api } from '@/lib/api';
-import { Badge, Timeline, type TimelineItem } from '@/components/ui';
+import { Badge, Timeline, type TimelineItem } from '@/components/statut';
 import { CheckpointForm } from '@/components/CheckpointForm';
 interface Detail { reference: string; mode: string; checkpoints: TimelineItem[]; colis: { id: string; trackingCode: string; description: string; client: string; statutActuel: string | null }[] }
 export default function LotPage({ params }: { params: { id: string } }) {
