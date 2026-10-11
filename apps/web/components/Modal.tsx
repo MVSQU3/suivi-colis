@@ -4,7 +4,7 @@ import { X } from 'lucide-react';
 
 export function Modal({ titre, onClose, children }: { titre: string; onClose: () => void; children: ReactNode }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center" role="dialog" aria-modal="true" aria-label={titre}>
+    <div className="fixed inset-0 z-[60] flex items-end justify-center sm:items-center" role="dialog" aria-modal="true" aria-label={titre}>
       <button className="absolute inset-0 bg-fonce/50" aria-label="Fermer" onClick={onClose} />
       <div className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-t-xl bg-white p-5 shadow-xl sm:rounded-xl">
         <div className="mb-4 flex items-center justify-between gap-2">

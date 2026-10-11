@@ -46,15 +46,15 @@ export default function ColisPage() {
         <Card className="border-0"><CardContent className="p-0">
           <ul className="divide-y divide-gris/20">
             {liste.map((c) => (
-              <li key={c.id} className={`flex items-center gap-2 pr-3 ${c.statutActuel === 'EXCEPTION' ? 'bg-alerte/5' : ''}`}>
-                <Link href={`/tableau-de-bord/colis/${c.id}`} className="flex min-h-16 flex-1 flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 hover:bg-fond/60">
+              <li key={c.id} className={`flex flex-col sm:flex-row sm:items-center sm:gap-2 sm:pr-3 ${c.statutActuel === 'EXCEPTION' ? 'bg-alerte/5' : ''}`}>
+                <Link href={`/tableau-de-bord/colis/${c.id}`} className="flex min-h-16 w-full flex-1 flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 hover:bg-fond/60">
                   <span className="min-w-0 flex-1">
-                    <span className="block font-mono font-semibold">{c.trackingCode}</span>
+                    <span className="block whitespace-nowrap font-mono font-semibold">{c.trackingCode}</span>
                     <span className="text-sm text-gris-texte">{c.description} · {c.client}{c.lot ? ` · ${c.lot}` : ''}</span>
                   </span>
                   {c.archivedAt ? <Pastille>Archivé</Pastille> : <Badge statut={c.statutActuel} />}
                 </Link>
-                {c.archivedAt && responsable && <Button variant="outline" className="h-11" onClick={() => setDesarch(c)}>Désarchiver</Button>}
+                {c.archivedAt && responsable && <Button variant="outline" className="mx-4 mb-3 h-11 self-start sm:m-0 sm:self-center" onClick={() => setDesarch(c)}>Désarchiver</Button>}
               </li>
             ))}
           </ul>

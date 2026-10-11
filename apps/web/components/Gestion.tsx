@@ -48,7 +48,7 @@ export function Supprimer({ entite, id, nom, onClose, onDone }: {
     try { await api(`/${entite}/${id}`, { method: 'DELETE' }); onDone('supprime'); }
     catch (e) {
       const action = e instanceof ApiError && e.status === 409 ? (e.body as { action?: string } | undefined)?.action : undefined;
-      if (action === 'archiver' || action === 'cloturer') { setAlt(action); setErr(e instanceof ApiError ? e.message : null); }
+      if (action === 'archiver' || action === 'cloturer') setAlt(action);
       else setErr(messageErreur(e));
       setBusy(false);
     }

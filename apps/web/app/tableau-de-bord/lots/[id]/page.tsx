@@ -96,7 +96,7 @@ export default function LotDetail({ params }: { params: { id: string } }) {
           <div className="min-w-0 flex-1">
             <h1 className="break-all text-xl font-semibold">{d.reference}</h1>
             <p className="text-sm text-gris-texte">{d.mode === 'MER' ? 'Maritime' : 'Aérien'} · {n} colis{d.departPrevu ? ` · départ prévu le ${formatDate(d.departPrevu).slice(0, 10)}` : ''}</p>
-            <div className="mt-2 flex flex-wrap gap-2">{cloture && <Pastille>Clôturé</Pastille>}<Badge statut={actuel} /></div>
+            <div className="mt-2 flex flex-wrap gap-2">{cloture && <Pastille>Clôturé</Pastille>}{(actuel || !cloture) && <Badge statut={actuel} />}</div>
           </div>
           {!cloture && <div className="hidden sm:block">{boutonMaj}</div>}
           <div className="flex w-full flex-wrap gap-2">
