@@ -14,6 +14,17 @@ Un client qui commande de la marchandise en Chine et la confie à un transitaire
 | Couverture géographique | **Toute l'Afrique** : le produit ne doit plus supposer la Côte d'Ivoire |
 | Canaux d'information du client final | **Notifications WhatsApp**, **SMS** et **application mobile**, en plus de la page web de suivi déjà en place |
 
+### Décisions complémentaires (09/11/2026)
+
+| Sujet | Décision du user | Conséquence |
+|---|---|---|
+| Deuxième pays | **Aucun partenaire hors Côte d'Ivoire pour l'instant** | La Côte d'Ivoire reste le pays pilote. On rend le modèle multi-pays (phase 1) sans traduire ni ouvrir de pays : l'anglais et les fournisseurs SMS d'autres pays attendront un premier transitaire étranger. |
+| Numéro WhatsApp | **Un seul numéro pour la plateforme** | Un seul compte WhatsApp Business et une seule vérification Meta. Le nom du transitaire apparaît dans le texte du modèle de message. |
+| Qui paie les notifications | **Non tranché, volontairement** | L'architecture reste neutre : chaque envoi est journalisé avec son coût et son tenant, ce qui permet plus tard un quota, une refacturation ou une inclusion dans l'abonnement sans rien refaire. |
+| Application | **PWA pour le développement**, natif selon les besoins | Phase 3 en PWA. L'app native reste optionnelle (phase 6). |
+| Hébergement | **OVHcloud**, ouvert à une meilleure offre | La phase 0 cible OVHcloud. Une comparaison rapide reste à faire (section 10). |
+| Nouveaux statuts (transit terrestre, livraison à domicile) | **Pas pour le moment** | On garde les 8 statuts, en renommant seulement `ARRIVE_ABIDJAN` en `ARRIVE_DESTINATION`. |
+
 ## 3. Utilisateurs et problème
 
 | Acteur | Aujourd'hui | Ce qu'on lui apporte |
@@ -87,7 +98,7 @@ checkpoint créé ─► table Notification (outbox, même transaction)
 - Passer par la **WhatsApp Business Platform (Cloud API de Meta)**, directement ou via un BSP. L'envoi d'un message hors conversation ouverte impose un **modèle pré-approuvé** (catégorie « utility »).
 - Tarification de Meta **par message et par pays** de destination. *À vérifier sur la grille officielle de Meta avant de chiffrer quoi que ce soit : les prix varient beaucoup d'un pays africain à l'autre.*
 - **Consentement (opt-in) obligatoire.** Il est recueilli par le transitaire à la création du client (case à cocher et mention), et le client peut se désabonner (« STOP »).
-- **Décision à prendre : un numéro WhatsApp unique pour la plateforme, ou un numéro par transitaire** (section 9). Un numéro par transitaire est plus parlant pour le client, mais plus lourd à gérer (vérification Meta de chaque entreprise).
+- **Décidé : un numéro WhatsApp unique pour la plateforme.** Le modèle de message nomme le transitaire (par exemple « Votre colis confié à {transitaire} est arrivé à {lieu} »). Le client qui répond au message doit être renvoyé vers le WhatsApp du transitaire : le numéro de la plateforme ne fait pas de service client.
 
 ### SMS (repli et clients sans WhatsApp)
 
@@ -111,7 +122,7 @@ checkpoint créé ─► table Notification (outbox, même transaction)
 | Coût de développement | Faible : manifest, service worker, cache hors ligne de « Mes colis » | Moyen à élevé : un deuxième code à maintenir, publication sur les stores |
 | Hors ligne | Dernier état connu des colis | Idem |
 
-L'essentiel des clients finaux est sur Android (hypothèse à confirmer par les transitaires) : la PWA couvre donc la majorité des cas pour un coût minime. On passera à Expo si le taux d'installation de la PWA est faible ou si les transitaires veulent une app à leur nom (marque blanche).
+**Décidé : PWA pour le développement.** L'essentiel des clients finaux est sur Android (hypothèse à confirmer par les transitaires) : la PWA couvre donc la majorité des cas pour un coût minime. On passera à Expo si le taux d'installation de la PWA est faible ou si les transitaires veulent une app à leur nom (marque blanche). Pour garder cette porte ouverte, la PWA ne parle qu'à l'API existante : une app native pourrait la réutiliser telle quelle.
 
 **Parcours client dans l'app :** ouverture du lien magique (déjà en place), puis session « Mes colis », bouton « Installer l'application », acceptation des notifications, liste des colis avec leur statut, détail avec l'historique, et contact WhatsApp du transitaire. La règle produit existante reste valable : **aucun concurrent n'est affiché dans l'espace d'un transitaire.**
 
@@ -126,14 +137,12 @@ L'essentiel des clients finaux est sur Android (hypothèse à confirmer par les 
 | **Saisie de checkpoints erronés** puis notification envoyée | Message faux chez des centaines de clients | Délai de grâce de quelques minutes avant l'envoi, pendant lequel l'agent peut annuler |
 | **Passage du local Windows à un hébergement en ligne** | Indisponibilité, perte de données | Phase 0 : hébergement géré, sauvegardes automatiques, supervision |
 
-## 9. Questions ouvertes pour le user
+## 9. Questions ouvertes
 
-1. **Premier pays après la Côte d'Ivoire ?** Il conditionne la langue (FR ou EN), la devise et le fournisseur SMS à tester en premier. Avez-vous déjà des transitaires partenaires dans d'autres pays ?
-2. **Numéro WhatsApp :** un seul numéro pour la plateforme au MVP, ou un numéro au nom de chaque transitaire ?
-3. **Qui paie les notifications ?** Incluses dans l'abonnement avec un quota, refacturées au transitaire à l'unité, ou payées par le client final ?
-4. **Application :** PWA d'abord (recommandé), ou faut-il viser les stores dès le départ, éventuellement en marque blanche par transitaire ?
-5. **Hébergement :** une région ou un fournisseur imposé (proximité de l'Afrique de l'Ouest, contraintes de localisation des données dans certains pays) ?
-6. **Statuts :** faut-il ajouter des étapes propres à l'Afrique, comme le **transit terrestre** vers un pays enclavé (Mali, Burkina Faso, Niger, Tchad…), par exemple `EN_TRANSIT_TERRESTRE`, ou la **livraison à domicile** ?
+Les six questions du kickoff ont reçu une réponse le 09/11/2026 (section 2). Il reste :
+
+1. **Modèle de facturation des notifications** : reporté volontairement. À reprendre quand on aura les grilles WhatsApp et SMS et les premiers volumes réels (journal d'envoi de la phase 2).
+2. **Deuxième pays** : à décider au premier transitaire partenaire hors Côte d'Ivoire. Il déclenchera la traduction (si pays anglophone), l'enregistrement du Sender ID SMS et la checklist de conformité de ce pays.
 
 ## 10. Feuille de route
 
@@ -141,16 +150,16 @@ Effort : S = quelques jours, M = 1 à 3 semaines, L = plus d'un mois. Les phases
 
 | Phase | Contenu | Effort | Critère de fin |
 |---|---|---|---|
-| **0. Mise en production** | Hébergement géré (API, web, Postgres), domaine et HTTPS, sauvegardes automatiques, supervision, CI sur GitHub (tests unitaires et e2e à chaque push) | M | Un transitaire pilote utilise la plateforme en ligne pendant 2 semaines sans incident bloquant |
-| **1. Fondations multi-pays** | Téléphone E.164 par pays ; `paysCode`, devise, fuseau et langue sur le tenant et le client ; statut `ARRIVE_DESTINATION` ; référentiel ports et aéroports ; i18n FR / EN de la page de suivi et de « Mes colis » | M | Un transitaire fictif au Nigeria (EN, NGN, +234) passe toute la suite e2e et le parcours démo |
-| **2. Notifications** | Outbox et worker ; consentement et préférences du client ; WhatsApp (modèles approuvés) ; repli SMS ; regroupement par lot ; fenêtre silencieuse ; délai d'annulation ; journal et écran « Notifications » pour le transitaire | L | Une mise à jour de lot de 500 colis notifie chaque client une seule fois en moins de 10 minutes (hypothèse de cible), avec un taux d'échec suivi |
+| **0. Mise en production** | Hébergement sur **OVHcloud** (API, web, Postgres managé ou sur l'instance), domaine et HTTPS, sauvegardes automatiques, supervision, CI sur GitHub (tests unitaires et e2e à chaque push) | M | Un transitaire pilote utilise la plateforme en ligne pendant 2 semaines sans incident bloquant |
+| **1. Fondations multi-pays** | Téléphone E.164 par pays ; `paysCode`, devise, fuseau et langue sur le tenant et le client ; statut `ARRIVE_DESTINATION` ; référentiel ports et aéroports ; structure i18n en place, avec le **français seul** tant qu'aucun pays anglophone n'est ouvert | M | Un transitaire fictif d'un autre pays francophone (par exemple Sénégal, +221, XOF) passe toute la suite e2e et le parcours démo, sans régression en Côte d'Ivoire |
+| **2. Notifications** | Outbox et worker ; consentement et préférences du client ; WhatsApp sur un numéro unique de la plateforme (modèles approuvés) ; repli SMS (fournisseur couvrant la Côte d'Ivoire) ; coût enregistré par envoi et par tenant ; regroupement par lot ; fenêtre silencieuse ; délai d'annulation ; journal et écran « Notifications » pour le transitaire | L | Une mise à jour de lot de 500 colis notifie chaque client une seule fois en moins de 10 minutes (hypothèse de cible), avec un taux d'échec suivi |
 | **3. Application client (PWA)** | Manifest, service worker, installation depuis « Mes colis », cache hors ligne, Web Push | M | Installation depuis un Android d'entrée de gamme en 3G, push reçu au checkpoint suivant |
 | **4. Suivi automatique des lots** | Intégration du finaliste ShipsGo ou Vizion, après le test des 10 à 20 vraies références prévu dans `etude-suivi-automatique.md` | M | Les départs et arrivées d'un lot réel se mettent à jour sans saisie |
-| **5. Annuaire des transitaires** | Selon `cadrage-annuaire-transitaires.md`, en généralisant les référentiels (villes de départ, zones de retrait) à plusieurs pays | L | Annuaire ouvert dans le premier pays, avec au moins N fiches vérifiées (N à fixer) |
+| **5. Annuaire des transitaires** | Selon `cadrage-annuaire-transitaires.md`, en généralisant les référentiels (villes de départ, zones de retrait) à plusieurs pays | L | Annuaire ouvert en Côte d'Ivoire, avec au moins N fiches vérifiées (N à fixer) |
 | **6. App native (optionnelle)** | Expo / React Native, marque blanche éventuelle | L | Décision prise sur la base des taux d'installation de la PWA |
 
 ### Prochaines actions concrètes
 
-1. Le user répond aux questions de la section 9, en priorité aux questions 1, 2 et 3.
-2. Demander les grilles tarifaires WhatsApp (Meta ou un BSP) et SMS (2 ou 3 agrégateurs) pour le premier pays visé et pour la Côte d'Ivoire.
-3. Lancer la phase 0, puis la phase 1. Les fondations multi-pays touchent le schéma et l'API publique : mieux vaut les faire **avant** d'avoir beaucoup de données en production.
+1. **Hébergement (phase 0)** : chiffrer une configuration OVHcloud (VPS ou Public Cloud, Postgres managé ou non, sauvegardes) et la comparer à une ou deux offres équivalentes, sur le prix, la latence depuis Abidjan et la simplicité d'exploitation. On garde OVHcloud sauf écart net.
+2. **Grilles tarifaires** : demander les prix WhatsApp (Meta ou un BSP) et SMS (2 ou 3 agrégateurs) pour la **Côte d'Ivoire**. Elles serviront plus tard à décider qui paie les notifications.
+3. **Lancer la phase 0, puis la phase 1.** Les fondations multi-pays touchent le schéma et l'API publique : mieux vaut les faire **avant** d'avoir beaucoup de données en production.
