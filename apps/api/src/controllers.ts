@@ -1,15 +1,22 @@
-import { BadRequestException, ConflictException, Body, Controller, Delete, Get, HttpCode, NotFoundException, Param, Post, Query, UnauthorizedException, UseGuards } from '@nestjs/common';
+import { ConflictException, Body, Controller, Delete, Get, HttpCode, NotFoundException, Param, Post, Query, UnauthorizedException, UseGuards } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Throttle, SkipThrottle } from '@nestjs/throttler';
 import * as argon2 from 'argon2';
 import { normalizeTrackingCode, libelleStatut } from '@suivi-colis/shared';
 import { Prisma } from '@prisma/client';
-import { normaliserTelephoneCI } from './phone';
+import { telephoneClient } from './phone';
 import { PrismaService } from './prisma.service';
 import { ColisService } from './colis.service';
 import { CurrentUser, JwtAuthGuard, JwtUser, TenantId } from './auth';
 import { AffecterDto, CheckpointDto, CreateClientDto, CreateColisDto, CreateLotDto, LoginDto } from './dto';
+
+/** Tenant vu par ses propres utilisateurs (back-office). */
+const tenantPublic = (t: { name: string; paysCode: string; devise: string; fuseau: string; langue: string }) =>
+  ({ name: t.name, paysCode: t.paysCode, devise: t.devise, fuseau: t.fuseau, langue: t.langue });
+/** Transitaire vu par le client final : liste blanche de champs (aucun identifiant interne). */
+export const transitairePublic = (t: { name: string; phone: string | null; primaryColor: string | null; paysCode: string; fuseau: string }) =>
+  ({ nom: t.name, telephone: t.phone, couleur: t.primaryColor, pays: t.paysCode, fuseau: t.fuseau });
 
 @ApiTags('auth') @SkipThrottle() @Controller('auth')
 export class AuthController {
@@ -27,12 +34,12 @@ export class AuthController {
     }
     await this.prisma.user.update({ where: { id: u.id }, data: { failedLogins: 0, lockedUntil: null } });
     const payload: JwtUser = { sub: u.id, tenantId: u.tenantId, role: u.role, email: u.email };
-    return { accessToken: this.jwt.sign(payload), user: { email: u.email, fullName: u.fullName, role: u.role, tenant: { name: u.tenant.name } } };
+    return { accessToken: this.jwt.sign(payload), user: { email: u.email, fullName: u.fullName, role: u.role, tenant: tenantPublic(u.tenant) } };
   }
   @Get('me') @UseGuards(JwtAuthGuard) @ApiBearerAuth()
   async me(@CurrentUser() u: JwtUser) {
     const user = await this.prisma.user.findUniqueOrThrow({ where: { id: u.sub }, include: { tenant: true } });
-    return { email: user.email, fullName: user.fullName, role: user.role, tenant: { name: user.tenant.name } };
+    return { email: user.email, fullName: user.fullName, role: user.role, tenant: tenantPublic(user.tenant) };
   }
 }
 
@@ -56,8 +63,8 @@ export class BackOfficeController {
     return this.prisma.client.findMany({ where: { tenantId, ...(archives === '1' ? {} : { archivedAt: null }), ...(q ? { OR: [{ fullName: { contains: q, mode: 'insensitive' } }, { phone: { contains: q } }] } : {}) }, orderBy: { fullName: 'asc' } });
   }
   @Post('clients') async createClient(@TenantId() tenantId: string, @Body() dto: CreateClientDto) {
-    const phone = normaliserTelephoneCI(dto.phone);
-    if (!phone) throw new BadRequestException({ statusCode: 400, message: ['Numéro invalide : 10 chiffres attendus, avec ou sans +225'], champ: 'phone' });
+    const tenant = await this.prisma.tenant.findUniqueOrThrow({ where: { id: tenantId }, select: { paysCode: true } });
+    const phone = telephoneClient(dto.phone, tenant.paysCode);
     const existant = await this.prisma.client.findFirst({ where: { tenantId, phone }, select: { id: true, fullName: true } });
     if (existant) throw new ConflictException({ statusCode: 409, message: 'Ce numéro correspond déjà à un client', clientExistant: existant });
     try { return await this.prisma.client.create({ data: { ...dto, phone, tenantId } }); }
@@ -118,11 +125,11 @@ export class PublicController {
     if (!code) throw notFound;
     const c = await this.prisma.colis.findUnique({ where: { trackingCode: code }, include: { tenant: true } });
     if (!c) throw notFound;
-    if (c.archivedAt) return { code, statut: 'inactif', transitaire: { nom: c.tenant.name, telephone: c.tenant.phone, couleur: c.tenant.primaryColor } };
+    if (c.archivedAt) return { code, statut: 'inactif', transitaire: transitairePublic(c.tenant) };
     const h = await this.colis.history(c.id);
     return {
       code, description: c.description, mode: c.mode, cartons: c.cartons,
-      transitaire: { nom: c.tenant.name, telephone: c.tenant.phone, couleur: c.tenant.primaryColor },
+      transitaire: transitairePublic(c.tenant),
       statutActuel: h.length ? { statut: h.at(-1)!.statut, libelle: h.at(-1)!.libelle } : null,
       checkpoints: h.map((x) => ({ date: x.date, lieu: (x as { site?: { nom: string } | null }).site?.nom ?? null, statut: x.statut, libelle: x.libelle, ...(x.statut === 'EXCEPTION' ? { commentaire: x.commentaire } : {}) })),
     };

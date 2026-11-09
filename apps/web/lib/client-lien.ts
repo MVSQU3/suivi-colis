@@ -1,7 +1,7 @@
 import { API_INTERNAL } from '@/lib/api';
 
 /** Magic-link client, appels côté serveur (API_INTERNAL_URL). */
-export interface Transitaire { nom: string; telephone?: string | null }
+export interface Transitaire { nom: string; telephone?: string | null; pays?: string; fuseau?: string }
 export type LienResult = { ok: true; valide: boolean; transitaire: Transitaire | null } | { ok: false; kind: 'trop' | 'reseau' };
 
 /** GET /client/lien/:jeton : lecture seule, ne consomme jamais le jeton. */

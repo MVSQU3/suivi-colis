@@ -5,7 +5,7 @@ import { libelleBO } from '@/components/CheckpointForm';
 export interface TimelineEntry { id?: string; date: string; statut: string; site?: { nom: string } | null; lieu?: string | null; commentaire?: string | null; source?: string }
 
 /** Timeline verticale back-office (plus récent en haut). */
-export function TimelineBO({ items }: { items: TimelineEntry[] }) {
+export function TimelineBO({ items, fuseau }: { items: TimelineEntry[]; fuseau?: string }) {
   const tries = [...items].sort((a, b) => +new Date(b.date) - +new Date(a.date));
   if (!tries.length) return <p className="rounded-md bg-fond px-4 py-6 text-center text-sm text-gris-texte">Aucune étape pour le moment.</p>;
   return (
@@ -19,7 +19,7 @@ export function TimelineBO({ items }: { items: TimelineEntry[] }) {
             <div className="min-w-0">
               <p className={cn('font-semibold', ex && 'text-alerte')}>{libelleBO(c.statut)}</p>
               <p className="text-sm text-gris-texte">
-                {formatDate(c.date)}{(c.site?.nom || c.lieu) ? ` · ${c.site?.nom || c.lieu}` : ''}
+                {formatDate(c.date, fuseau)}{(c.site?.nom || c.lieu) ? ` · ${c.site?.nom || c.lieu}` : ''}
                 {c.source === 'LOT' && ' · via le lot'}
               </p>
               {c.commentaire && <p className="mt-1 text-sm">{ex ? 'Message client : ' : 'Note interne : '}{c.commentaire}</p>}

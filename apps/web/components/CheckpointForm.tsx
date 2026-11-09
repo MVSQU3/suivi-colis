@@ -47,7 +47,7 @@ interface Props {
 
 export function CheckpointForm({ mode, defaultStatut, submitLabel, confirmText, onSubmit, onCancel }: Props) {
   const [sites, setSites] = useState<Site[] | null>(null);
-  const [statut, setStatut] = useState<string>(mode === 'exception' ? 'EXCEPTION' : defaultStatut ?? 'ARRIVE_ABIDJAN');
+  const [statut, setStatut] = useState<string>(mode === 'exception' ? 'EXCEPTION' : defaultStatut ?? 'ARRIVE_DESTINATION');
   const [siteId, setSiteId] = useState('');
   const [date, setDate] = useState(localNow());
   // La date n'est envoyée que si l'utilisateur l'a changée : sinon l'API prend l'heure serveur (évite de rater un colis ajouté à la minute près).

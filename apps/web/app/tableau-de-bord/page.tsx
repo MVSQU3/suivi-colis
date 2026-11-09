@@ -23,7 +23,7 @@ interface ClientRow { id: string; fullName: string; phone: string; city?: string
 interface Data { stats: Stats; colis: ColisRow[]; lots: LotRow[]; clients: ClientRow[] }
 
 // Colis en route entre le départ de Chine et la mise à disposition.
-const EN_TRANSIT = ['PARTI_DE_CHINE', 'ARRIVE_ABIDJAN', 'EN_DEDOUANEMENT'];
+const EN_TRANSIT = ['PARTI_DE_CHINE', 'ARRIVE_DESTINATION', 'EN_DEDOUANEMENT'];
 
 export default function Dashboard() {
   const [data, setData] = useState<Data | null>(null);

@@ -12,7 +12,7 @@ const statutDe = (c: MonColis) => (typeof c.statutActuel === 'string' ? c.statut
 const derniereMaj = (c: MonColis) => (c.checkpoints?.length ? Math.max(...c.checkpoints.map((x) => +new Date(x.date))) : 0);
 const rang = (s: string | null) => (s === 'EXCEPTION' ? 0 : s === 'DISPONIBLE_AU_RETRAIT' ? 1 : 2);
 
-function Carte({ c }: { c: MonColis }) {
+function Carte({ c, fuseau }: { c: MonColis; fuseau?: string }) {
   const s = statutDe(c);
   const maj = derniereMaj(c);
   const bloque = s === 'EXCEPTION', dispo = s === 'DISPONIBLE_AU_RETRAIT';
@@ -26,7 +26,7 @@ function Carte({ c }: { c: MonColis }) {
         {dispo && <span className="mt-1 block text-sm font-semibold text-succes-fonce">Prêt : tu peux venir le récupérer.</span>}
         <span className="mt-1 flex flex-wrap justify-between gap-2 text-sm text-gris-texte">
           <span className="whitespace-nowrap font-mono">{c.code}</span>
-          {maj > 0 && <span>Mis à jour le {formatDate(new Date(maj).toISOString())}</span>}
+          {maj > 0 && <span>Mis à jour le {formatDate(new Date(maj).toISOString(), fuseau)}</span>}
         </span>
       </a>
     </li>
@@ -64,12 +64,12 @@ export default async function MesColisPage() {
       {enCours.length === 0 ? (
         <p className="rounded-lg bg-white p-6 text-center text-gris-texte">Aucun colis en cours chez {transitaire?.nom ?? 'ton transitaire'} pour le moment.</p>
       ) : (
-        <ul className="space-y-3">{enCours.map((c) => <Carte key={c.code} c={c} />)}</ul>
+        <ul className="space-y-3">{enCours.map((c) => <Carte key={c.code} c={c} fuseau={transitaire?.fuseau} />)}</ul>
       )}
       {recuperes.length > 0 && (
         <details className="rounded-lg bg-white p-4 shadow-sm">
           <summary className="min-h-11 cursor-pointer py-2 font-semibold">Colis déjà récupérés ({recuperes.length})</summary>
-          <ul className="mt-3 space-y-3">{recuperes.map((c) => <Carte key={c.code} c={c} />)}</ul>
+          <ul className="mt-3 space-y-3">{recuperes.map((c) => <Carte key={c.code} c={c} fuseau={transitaire?.fuseau} />)}</ul>
         </details>
       )}
       <div className="pt-2 text-center"><Deconnexion /></div>

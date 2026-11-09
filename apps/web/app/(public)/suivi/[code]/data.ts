@@ -2,7 +2,7 @@ import { cache } from 'react';
 import { API_INTERNAL } from '@/lib/api';
 
 export interface SuiviCheckpoint { date: string; lieu: string | null; statut: string; libelle: string; commentaire?: string | null }
-export interface Suivi { transitaire: { nom: string; telephone?: string | null }; statutActuel: string; checkpoints: SuiviCheckpoint[] }
+export interface Suivi { transitaire: { nom: string; telephone?: string | null; pays?: string; fuseau?: string }; statutActuel: string; checkpoints: SuiviCheckpoint[] }
 export type SuiviResult = { ok: true; data: Suivi } | { ok: false; kind: 'introuvable' | 'trop' | 'reseau' } | { ok: false; kind: 'inactif'; transitaire: Suivi['transitaire'] };
 
 /** Appel serveur à l'API publique, mutualisé entre generateMetadata et la page. */

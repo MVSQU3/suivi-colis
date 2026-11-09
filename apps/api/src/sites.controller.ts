@@ -6,8 +6,15 @@ import { PrismaService } from './prisma.service';
 import { JwtAuthGuard, TenantId } from './auth';
 import { CreateSiteDto, UpdateSiteDto } from './dto';
 
-/** Sites courants crees pour chaque nouveau tenant (et dans la migration pour les existants). */
-export const SITES_PAR_DEFAUT = ['Entrepôt Guangzhou (Baiyun)', 'Port de Nansha', "Port autonome d'Abidjan", 'Aéroport FHB'];
+/** Sites cote Chine, communs a tous les transitaires. */
+export const SITES_CHINE = ['Entrepôt Guangzhou (Baiyun)', 'Port de Nansha'];
+/** Sites d'arrivee proposes par pays ; ailleurs, le transitaire cree les siens. */
+const SITES_DESTINATION: Record<string, string[]> = {
+  CI: ["Port autonome d'Abidjan", 'Aéroport FHB'],
+  SN: ['Port autonome de Dakar', 'Aéroport AIBD (Dakar)'],
+};
+/** Sites courants crees pour chaque nouveau tenant, selon son pays. */
+export const sitesParDefaut = (paysCode: string) => [...SITES_CHINE, ...(SITES_DESTINATION[paysCode] ?? [])];
 
 const conflit = (e: unknown) => {
   if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') return new ConflictException('Un site porte deja ce nom');

@@ -36,14 +36,14 @@ export async function generateMetadata({ params }: { params: { code: string } })
   if (!r.ok) {
     // Aperçu neutre : ne révèle rien sur l'existence du code.
     const title = 'Suivi de colis';
-    const description = 'Suis ton colis de la Chine jusqu’à Abidjan.';
+    const description = 'Suis ton colis de la Chine jusqu’à destination.';
     return { title, description, robots: { index: false }, openGraph: { title, description, type: 'website' } };
   }
   const title = `Suivi ${code} : ${libelle(r.data.statutActuel)}`;
   const description = r.data.statutActuel === 'EXCEPTION'
     ? `Ton colis confié à ${r.data.transitaire.nom} est bloqué. Ouvre le suivi pour savoir pourquoi et contacter ton transitaire.`
-    : `Ton colis confié à ${r.data.transitaire.nom} : ${libelle(r.data.statutActuel)}. Suis chaque étape de la Chine jusqu’à Abidjan.`;
-  return { title, description, robots: { index: false }, openGraph: { title, description, type: 'website', locale: 'fr_CI' } };
+    : `Ton colis confié à ${r.data.transitaire.nom} : ${libelle(r.data.statutActuel)}. Suis chaque étape de la Chine jusqu’à destination.`;
+  return { title, description, robots: { index: false }, openGraph: { title, description, type: 'website', locale: `fr_${r.data.transitaire.pays ?? 'CI'}` } };
 }
 
 type Ligne =
@@ -133,7 +133,7 @@ export default async function SuiviPage({ params }: { params: { code: string } }
           {libelle(statutActuel)}
         </h1>
         {bloque && <p className="mt-2 text-base font-semibold">{derniereException?.commentaire || SANS_TEXTE}</p>}
-        {dernier && <p className="mt-2 text-sm">Mis à jour le {formatDate(dernier.date)}{dernier.lieu ? ` · ${dernier.lieu}` : ''}</p>}
+        {dernier && <p className="mt-2 text-sm">Mis à jour le {formatDate(dernier.date, transitaire.fuseau)}{dernier.lieu ? ` · ${dernier.lieu}` : ''}</p>}
         <div className="mt-3 flex items-center justify-between gap-2">
           <p className="text-sm">Code de suivi : <span className="whitespace-nowrap font-mono font-semibold tracking-wider">{code}</span></p>
           <CopyCode code={code} />
@@ -155,7 +155,7 @@ export default async function SuiviPage({ params }: { params: { code: string } }
                     <span className="z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-alerte text-white"><AlertTriangle className="h-3.5 w-3.5" aria-hidden /></span>
                     <div className="min-w-0 rounded-md border border-alerte/40 bg-alerte/5 px-3 py-2">
                       <p className="font-semibold text-alerte">{BLOQUE}</p>
-                      <p className="text-sm text-gris-texte">{formatDate(l.cp.date)}{l.cp.lieu ? ` · ${l.cp.lieu}` : ''}</p>
+                      <p className="text-sm text-gris-texte">{formatDate(l.cp.date, transitaire.fuseau)}{l.cp.lieu ? ` · ${l.cp.lieu}` : ''}</p>
                       <p className="mt-1 text-sm">{l.cp.commentaire || SANS_TEXTE}</p>
                     </div>
                   </li>
@@ -169,7 +169,7 @@ export default async function SuiviPage({ params }: { params: { code: string } }
                   </span>
                   <div className="min-w-0">
                     <p className={cn('font-semibold', !l.passe && 'text-gris-texte font-normal')}>{STATUT_META[l.statut].libelle}</p>
-                    {l.passe && l.cp && <p className="text-sm text-gris-texte">{formatDate(l.cp.date)}{l.cp.lieu ? ` · ${l.cp.lieu}` : ''}</p>}
+                    {l.passe && l.cp && <p className="text-sm text-gris-texte">{formatDate(l.cp.date, transitaire.fuseau)}{l.cp.lieu ? ` · ${l.cp.lieu}` : ''}</p>}
                     {l.passe && !l.cp && <p className="text-sm text-gris-texte">Étape franchie</p>}
                     {!l.passe && <p className="text-sm text-gris-texte">À venir</p>}
                   </div>

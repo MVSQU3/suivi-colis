@@ -9,7 +9,7 @@ import { api } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Pastille, Confirmer, Supprimer, ModifierClient, ModifierColis, ModifierLot } from '@/components/Gestion';
-import { useRole } from '@/lib/role';
+import { useRole, useTenant } from '@/lib/role';
 import { Pencil } from 'lucide-react';
 import { Archive } from 'lucide-react';
 import { Trash } from 'lucide-react';
@@ -28,6 +28,7 @@ export default function ClientDetail({ params }: { params: { id: string } }) {
   const [dlg, setDlg] = useState<'modifier' | 'archiver' | 'desarchiver' | 'supprimer' | null>(null);
   const [ok, setOk] = useState<string | null>(null);
   const { responsable } = useRole();
+  const { fuseau } = useTenant();
   const [lien, setLien] = useState<{ url: string; expireLe: string } | null>(null);
   const [lienErr, setLienErr] = useState<string | null>(null);
   const [envoi, setEnvoi] = useState(false);
@@ -66,10 +67,10 @@ export default function ClientDetail({ params }: { params: { id: string } }) {
             </div>
             {lienErr && <p role="alert" className="text-sm font-semibold text-alerte">{lienErr}</p>}
             {lien && (() => {
-              const msg = `Bonjour ${d.fullName}, voici votre lien pour suivre tous vos colis : ${lien.url}\nIl est valable 48 h (jusqu’au ${formatDate(lien.expireLe)}) et ne fonctionne qu’une seule fois.`;
+              const msg = `Bonjour ${d.fullName}, voici votre lien pour suivre tous vos colis : ${lien.url}\nIl est valable 48 h (jusqu’au ${formatDate(lien.expireLe, fuseau)}) et ne fonctionne qu’une seule fois.`;
               return (
                 <div className="space-y-2 rounded-md bg-fond p-4">
-                  <p className="text-sm">Lien créé, valable 48 h (jusqu’au <strong>{formatDate(lien.expireLe)}</strong>). Un nouveau lien remplace le précédent.</p>
+                  <p className="text-sm">Lien créé, valable 48 h (jusqu’au <strong>{formatDate(lien.expireLe, fuseau)}</strong>). Un nouveau lien remplace le précédent.</p>
                   <p className="break-all font-mono text-xs text-gris-texte">{lien.url}</p>
                   <Button asChild size="lg" variant="success" className="h-11"><a href={`https://wa.me/${d.phone.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`} target="_blank" rel="noopener noreferrer"><MessageCircle aria-hidden /> Envoyer sur WhatsApp</a></Button>
                 </div>

@@ -38,7 +38,7 @@ describe('15. Regressions parcours demo', () => {
   });
 
   describe('(b) egalite de date entre deux checkpoints colis : le plus recemment cree est le statut actuel', () => {
-    it.each([['RECU_ENTREPOT_CHINE', 'ARRIVE_ABIDJAN'], ['ARRIVE_ABIDJAN', 'RECU_ENTREPOT_CHINE']])('%s puis %s -> statut = second', async (s1, s2) => {
+    it.each([['RECU_ENTREPOT_CHINE', 'ARRIVE_DESTINATION'], ['ARRIVE_DESTINATION', 'RECU_ENTREPOT_CHINE']])('%s puis %s -> statut = second', async (s1, s2) => {
       const c = await newColis(app, t.ownerA);
       const D = await dateRonde();
       expect((await A().post(`/colis/${c.id}/checkpoints`, { statut: s1, siteId: I.siteA, date: D })).status).toBe(201);

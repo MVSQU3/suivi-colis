@@ -1,21 +1,24 @@
 'use client';
 import { useState } from 'react';
+import { exempleTelephone, normaliserTelephone, paysParCode } from '@suivi-colis/shared';
 import { api, ApiError } from '@/lib/api';
+import { useTenant } from '@/lib/role';
 import { Button } from '@/components/ui/button';
 
 export interface ClientLite { id: string; fullName: string; phone?: string; city?: string | null; email?: string | null }
 
-/** Accepte « 07 07 12 34 56 », « 0707123456 », « +225 07… », « 00225… » (l'API normalise). */
-export function telephoneValide(v: string) {
-  const d = v.replace(/[\s.\-()]/g, '').replace(/^\+225|^00225/, '');
-  return /^\d{10}$/.test(d);
-}
+/** Numéro local du pays du transitaire, ou numéro africain avec indicatif (même règle que l'API). */
+export const telephoneValide = (v: string, paysCode: string) => normaliserTelephone(v, paysCode) !== null;
+/** Message d'erreur et aide de saisie, adaptés au pays du transitaire. */
+export const aideTelephone = (paysCode: string) => `Ex. ${exempleTelephone(paysCode)}. Client dans un autre pays : indiquez l’indicatif (${paysCode === 'CI' ? '+221' : '+225'}…).`;
+export const erreurTelephone = (paysCode: string) => `Numéro invalide pour ${paysParCode(paysCode)?.nom ?? 'ce pays'} : ex. ${exempleTelephone(paysCode)}, ou un numéro africain avec indicatif.`;
 
 interface Props { onCreated: (c: ClientLite) => void; onUseExisting?: (c: ClientLite) => void; onCancel?: () => void }
 
 export function ClientForm({ onCreated, onUseExisting, onCancel }: Props) {
   const [fullName, setFullName] = useState('');
-  const [phone, setPhone] = useState('+225 ');
+  const { paysCode } = useTenant();
+  const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [city, setCity] = useState('');
   const [err, setErr] = useState<Record<string, string>>({});
@@ -26,7 +29,7 @@ export function ClientForm({ onCreated, onUseExisting, onCancel }: Props) {
     e.preventDefault(); setExistant(null);
     const er: Record<string, string> = {};
     if (fullName.trim().length < 2) er.fullName = 'Indiquez le nom du client (2 caractères minimum).';
-    if (!telephoneValide(phone)) er.phone = 'Numéro invalide : 10 chiffres attendus, avec ou sans +225.';
+    if (!telephoneValide(phone, paysCode)) er.phone = erreurTelephone(paysCode);
     if (email.trim() && !/^\S+@\S+\.\S+$/.test(email.trim())) er.email = 'Adresse e-mail invalide.';
     setErr(er);
     if (Object.keys(er).length) return;
@@ -53,7 +56,7 @@ export function ClientForm({ onCreated, onUseExisting, onCancel }: Props) {
       <div>
         <label className={lbl} htmlFor="cl-tel">Téléphone (WhatsApp)</label>
         <input id="cl-tel" className="input h-11" inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} autoComplete="tel" />
-        <p className="mt-1 text-xs text-gris-texte">Ex. 07 07 12 34 56</p>
+        <p className="mt-1 text-xs text-gris-texte">{aideTelephone(paysCode)}</p>
         {fe('phone')}
         {existant && onUseExisting && <Button type="button" variant="secondary" className="mt-2 h-11" onClick={() => onUseExisting(existant)}>Utiliser ce client</Button>}
       </div>

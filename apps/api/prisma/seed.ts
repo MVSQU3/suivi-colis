@@ -3,6 +3,8 @@ loadEnv();
 import { PrismaClient, StatutCheckpoint as S, ModeTransport } from '@prisma/client';
 import * as argon2 from 'argon2';
 import { generateTrackingCode } from '../src/tracking-code';
+import { sitesParDefaut } from '../src/sites.controller';
+import { paysParCode } from '@suivi-colis/shared';
 
 const prisma = new PrismaClient();
 const day = 86_400_000;
@@ -14,13 +16,16 @@ async function main() {
   const hash = await argon2.hash(userPwd);
 
   const tenantDefs = [
-    { slug: 'abidjan-express-cargo', name: 'Abidjan Express Cargo', phone: '+2252720000000', users: [['owner@abidjan-express.local', 'Koffi Owner', 'OWNER'], ['agent@abidjan-express.local', 'Aya Agent', 'AGENT']] },
-    { slug: 'treichville-fret-rapide', name: 'Treichville Fret Rapide', phone: '+2252721000000', users: [['owner@treichville-fret.local', 'Mariam Owner', 'OWNER']] },
+    { slug: 'abidjan-express-cargo', name: 'Abidjan Express Cargo', phone: '+2252720000000', pays: 'CI', users: [['owner@abidjan-express.local', 'Koffi Owner', 'OWNER'], ['agent@abidjan-express.local', 'Aya Agent', 'AGENT']] },
+    { slug: 'treichville-fret-rapide', name: 'Treichville Fret Rapide', phone: '+2252721000000', pays: 'CI', users: [['owner@treichville-fret.local', 'Mariam Owner', 'OWNER']] },
+    // Transitaire hors Cote d'Ivoire : demo multi-pays (numeros +221, fuseau de Dakar)
+    { slug: 'dakar-fret-express', name: 'Dakar Fret Express', phone: '+221338000000', pays: 'SN', users: [['owner@dakar-fret.local', 'Moussa Owner', 'OWNER']] },
   ] as const;
 
   const tenants: Record<string, string> = {};
   for (const t of tenantDefs) {
-    const tenant = await prisma.tenant.upsert({ where: { slug: t.slug }, update: {}, create: { slug: t.slug, name: t.name, phone: t.phone } });
+    const pays = paysParCode(t.pays)!;
+    const tenant = await prisma.tenant.upsert({ where: { slug: t.slug }, update: {}, create: { slug: t.slug, name: t.name, phone: t.phone, paysCode: pays.code, devise: pays.devise, fuseau: pays.fuseau } });
     tenants[t.slug] = tenant.id;
     for (const [email, fullName, role] of t.users) {
       await prisma.user.upsert({ where: { email }, update: { passwordHash: hash, failedLogins: 0, lockedUntil: null }, create: { email, fullName, role, passwordHash: hash, tenantId: tenant.id } });
@@ -65,7 +70,7 @@ async function main() {
     await affect(A, ct.id, mscu.id, ago(34));
     await lotCp(A, mscu.id, S.CHARGE_DANS_LOT, 'Lot MSCU5544210 – Guangzhou (antidaté, non hérité)', ago(40));
     await lotCp(A, mscu.id, S.PARTI_DE_CHINE, 'Port de Nansha, Guangzhou', ago(25));
-    await lotCp(A, mscu.id, S.ARRIVE_ABIDJAN, "Port autonome d'Abidjan", ago(3));
+    await lotCp(A, mscu.id, S.ARRIVE_DESTINATION, "Port autonome d'Abidjan", ago(3));
 
     // Lot aérien + colis en exception
     const air = await lot(A, 'ET-908-LTA-071-22334455', 'AIR');
@@ -74,14 +79,14 @@ async function main() {
     for (const c of [c5, c6]) await affect(A, c.id, air.id, ago(7));
     await lotCp(A, air.id, S.CHARGE_DANS_LOT, 'Lot ET-908 – Guangzhou', ago(7));
     await lotCp(A, air.id, S.PARTI_DE_CHINE, 'Aéroport Guangzhou Baiyun (CAN)', ago(6));
-    await lotCp(A, air.id, S.ARRIVE_ABIDJAN, "Aéroport FHB d'Abidjan", ago(2));
+    await lotCp(A, air.id, S.ARRIVE_DESTINATION, "Aéroport FHB d'Abidjan", ago(2));
     await lotCp(A, air.id, S.EN_DEDOUANEMENT, 'Douane – Aéroport FHB', ago(1));
     const cx = await colis(A, awa.id, 'Cosmétiques', 'AIR', 1, 8);
     await prisma.checkpoint.create({ data: { tenantId: A, colisId: cx.id, statut: S.EXCEPTION, lieu: 'Entrepôt Guangzhou (Baiyun)', commentaire: 'Produits liquides refusés au fret aérien : en attente de consignes du client', date: ago(6) } });
 
     // Colis livré hors lot (historique complet)
     const c8 = await colis(A, yao.id, 'Écouteurs Bluetooth', 'AIR', 1, 20);
-    const steps: [S, string, number][] = [[S.PARTI_DE_CHINE, 'Aéroport Guangzhou Baiyun (CAN)', 18], [S.ARRIVE_ABIDJAN, "Aéroport FHB d'Abidjan", 16], [S.EN_DEDOUANEMENT, 'Douane – Aéroport FHB', 15], [S.DISPONIBLE_AU_RETRAIT, 'Magasin Abidjan Express, Treichville', 14], [S.REMIS_AU_CLIENT, 'Remis au client – Treichville', 12]];
+    const steps: [S, string, number][] = [[S.PARTI_DE_CHINE, 'Aéroport Guangzhou Baiyun (CAN)', 18], [S.ARRIVE_DESTINATION, "Aéroport FHB d'Abidjan", 16], [S.EN_DEDOUANEMENT, 'Douane – Aéroport FHB', 15], [S.DISPONIBLE_AU_RETRAIT, 'Magasin Abidjan Express, Treichville', 14], [S.REMIS_AU_CLIENT, 'Remis au client – Treichville', 12]];
     for (const [statut, lieu, d] of steps) await prisma.checkpoint.create({ data: { tenantId: A, colisId: c8.id, statut, lieu, date: ago(d) } });
 
     // Lot maritime en cours de chargement (demo « mise a jour groupee ») : 5 colis, 5 clients
@@ -107,15 +112,14 @@ async function main() {
   }
 
   // Sites par defaut pour chaque tenant (idempotent, insensible a la casse)
-  const SITES = ['Entrepôt Guangzhou (Baiyun)', 'Port de Nansha', "Port autonome d'Abidjan", 'Aéroport FHB'];
   for (const t of await prisma.tenant.findMany()) {
     const exist = new Set((await prisma.site.findMany({ where: { tenantId: t.id } })).map((s) => s.nom.trim().toLowerCase()));
-    for (const nom of SITES) if (!exist.has(nom.toLowerCase())) await prisma.site.create({ data: { tenantId: t.id, nom } });
+    for (const nom of sitesParDefaut(t.paysCode)) if (!exist.has(nom.toLowerCase())) await prisma.site.create({ data: { tenantId: t.id, nom } });
   }
 
   // Rattache les checkpoints de demo sans site a un site plausible (statut + mode de transport)
   const EXTRA = ['Aéroport Guangzhou Baiyun (CAN)', 'Magasin Treichville'];
-  for (const t of await prisma.tenant.findMany()) {
+  for (const t of await prisma.tenant.findMany({ where: { paysCode: 'CI' } })) {
     const exist = new Set((await prisma.site.findMany({ where: { tenantId: t.id } })).map((s) => s.nom.trim().toLowerCase()));
     for (const nom of EXTRA) if (!exist.has(nom.toLowerCase())) await prisma.site.create({ data: { tenantId: t.id, nom } });
     const sites = new Map((await prisma.site.findMany({ where: { tenantId: t.id } })).map((s) => [s.nom, s.id]));
@@ -125,15 +129,30 @@ async function main() {
       const nom = ({
         RECU_ENTREPOT_CHINE: 'Entrepôt Guangzhou (Baiyun)', CHARGE_DANS_LOT: 'Entrepôt Guangzhou (Baiyun)', EXCEPTION: 'Entrepôt Guangzhou (Baiyun)',
         PARTI_DE_CHINE: air ? 'Aéroport Guangzhou Baiyun (CAN)' : 'Port de Nansha',
-        ARRIVE_ABIDJAN: air ? 'Aéroport FHB' : "Port autonome d'Abidjan", EN_DEDOUANEMENT: air ? 'Aéroport FHB' : "Port autonome d'Abidjan",
+        ARRIVE_DESTINATION: air ? 'Aéroport FHB' : "Port autonome d'Abidjan", EN_DEDOUANEMENT: air ? 'Aéroport FHB' : "Port autonome d'Abidjan",
         DISPONIBLE_AU_RETRAIT: 'Magasin Treichville', REMIS_AU_CLIENT: 'Magasin Treichville',
       } as Record<string, string>)[cp.statut];
       if (nom && sites.get(nom)) await prisma.checkpoint.update({ where: { id: cp.id }, data: { siteId: sites.get(nom) } });
     }
   }
+  // Tenant senegalais : un client et un lot arrive a Dakar
+  const D = tenants['dakar-fret-express'];
+  if ((await prisma.colis.count({ where: { tenantId: D } })) === 0) {
+    const site = async (nom: string) => (await prisma.site.findFirstOrThrow({ where: { tenantId: D, nom } })).id;
+    const aminata = await prisma.client.create({ data: { tenantId: D, fullName: 'Aminata Diop', phone: '+221771234567', city: 'Dakar – Médina' } });
+    const l = await prisma.lot.create({ data: { tenantId: D, reference: 'MEDU4455667', mode: 'MER' } });
+    for (const description of ['Tissus bazin, 3 cartons', 'Ventilateurs, 2 cartons']) {
+      const c = await prisma.colis.create({ data: { tenantId: D, clientId: aminata.id, description, mode: 'MER', cartons: 2, trackingCode: generateTrackingCode(), createdAt: ago(38) } });
+      await prisma.checkpoint.create({ data: { tenantId: D, colisId: c.id, statut: S.RECU_ENTREPOT_CHINE, lieu: 'Entrepôt Guangzhou (Baiyun)', siteId: await site('Entrepôt Guangzhou (Baiyun)'), date: ago(38) } });
+      await prisma.affectationLot.create({ data: { tenantId: D, colisId: c.id, lotId: l.id, debut: ago(36) } });
+    }
+    const etapes: [S, string, number][] = [[S.CHARGE_DANS_LOT, 'Entrepôt Guangzhou (Baiyun)', 35], [S.PARTI_DE_CHINE, 'Port de Nansha', 32], [S.ARRIVE_DESTINATION, 'Port autonome de Dakar', 2]];
+    for (const [statut, nom, d] of etapes) await prisma.checkpoint.create({ data: { tenantId: D, lotId: l.id, statut, lieu: nom, siteId: await site(nom), date: ago(d) } });
+  }
+
   const all = await prisma.colis.findMany({ include: { tenant: true }, orderBy: { createdAt: 'asc' } });
   console.log('\nCodes de suivi :');
   for (const c of all) console.log(`  ${c.trackingCode}  ${c.tenant.name.padEnd(24)} ${c.description}`);
-  console.log('\nComptes : owner@abidjan-express.local, agent@abidjan-express.local, owner@treichville-fret.local (mot de passe : SEED_USER_PASSWORD dans apps/api/.env)');
+  console.log('\nComptes : owner@abidjan-express.local, agent@abidjan-express.local, owner@treichville-fret.local, owner@dakar-fret.local (mot de passe : SEED_USER_PASSWORD dans apps/api/.env)');
 }
 main().finally(() => prisma.$disconnect());

@@ -13,10 +13,10 @@ describe('6. Dates des checkpoints', () => {
   const iso = (offsetMs: number) => new Date(Date.now() + offsetMs).toISOString();
 
   it('colis : date > now + 2 min -> 400', async () => {
-    expect((await api(app, t.ownerA).post(`/colis/${C.id}/checkpoints`, { statut: 'ARRIVE_ABIDJAN', siteId: I.siteA, date: iso(3 * 60_000) })).status).toBe(400);
+    expect((await api(app, t.ownerA).post(`/colis/${C.id}/checkpoints`, { statut: 'ARRIVE_DESTINATION', siteId: I.siteA, date: iso(3 * 60_000) })).status).toBe(400);
   });
   it('lot : date > now + 2 min -> 400', async () => {
-    expect((await api(app, t.ownerA).post(`/lots/${L.id}/checkpoints`, { statut: 'ARRIVE_ABIDJAN', siteId: I.siteA, date: iso(3 * 60_000) })).status).toBe(400);
+    expect((await api(app, t.ownerA).post(`/lots/${L.id}/checkpoints`, { statut: 'ARRIVE_DESTINATION', siteId: I.siteA, date: iso(3 * 60_000) })).status).toBe(400);
   });
   it('colis : quelques secondes dans le futur (derive horloge) -> 201', async () => {
     expect((await api(app, t.ownerA).post(`/colis/${C.id}/checkpoints`, { statut: 'RECU_ENTREPOT_CHINE', siteId: I.siteA, date: iso(5_000) })).status).toBe(201);

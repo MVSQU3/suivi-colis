@@ -12,10 +12,12 @@ import { Button } from '@/components/ui/button';
 import { Pastille } from '@/components/Gestion';
 import { formatDate } from '@suivi-colis/shared';
 import { messageErreur } from '@/components/CheckpointForm';
+import { useTenant } from '@/lib/role';
 
 interface LotRow { id: string; reference: string; mode: string; nbColis: number; dernierStatut: string | null; departPrevu?: string | null; clotureLe?: string | null }
 
 export default function LotsPage() {
+  const { fuseau } = useTenant();
   const [lots, setLots] = useState<LotRow[] | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const charger = () => { setErr(null); api<LotRow[]>('/lots').then(setLots).catch((e) => setErr(messageErreur(e))); };
@@ -32,7 +34,7 @@ export default function LotsPage() {
               <li key={l.id}>
                 <Link href={`/tableau-de-bord/lots/${l.id}`} className="flex min-h-16 flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 hover:bg-fond/60">
                   <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-fond">{l.mode === 'MER' ? <Ship className="h-5 w-5" aria-label="Maritime" /> : <Plane className="h-5 w-5" aria-label="Aérien" />}</span>
-                  <span className="min-w-0 flex-1"><span className="block font-semibold">{l.reference}</span><span className="text-sm text-gris-texte">{l.mode === 'MER' ? 'Maritime' : 'Aérien'} · {l.nbColis} colis{l.departPrevu ? ` · départ prévu le ${formatDate(l.departPrevu).slice(0, 10)}` : ''}</span></span>
+                  <span className="min-w-0 flex-1"><span className="block font-semibold">{l.reference}</span><span className="text-sm text-gris-texte">{l.mode === 'MER' ? 'Maritime' : 'Aérien'} · {l.nbColis} colis{l.departPrevu ? ` · départ prévu le ${formatDate(l.departPrevu, fuseau).slice(0, 10)}` : ''}</span></span>
                   {l.clotureLe ? <Pastille>Clôturé</Pastille> : <Badge statut={l.dernierStatut} />}
                 </Link>
               </li>

@@ -8,7 +8,7 @@ export function Badge({ statut, label }: { statut: string | null; label?: string
   return <span className="inline-block rounded-full px-2 py-0.5 text-xs font-semibold" style={s}>{lib}</span>;
 }
 export interface TimelineItem { date: string; lieu: string; statut: string; libelle: string; commentaire?: string | null }
-export function Timeline({ items }: { items: TimelineItem[] }) {
+export function Timeline({ items, fuseau }: { items: TimelineItem[]; fuseau?: string }) {
   const sorted = [...items].reverse(); // plus récent en haut
   return (
     <ol className="relative ml-2 border-l-2 border-gris/40">
@@ -16,7 +16,7 @@ export function Timeline({ items }: { items: TimelineItem[] }) {
         <li key={i} className="mb-5 ml-4">
           <span className="absolute -left-[7px] mt-1.5 h-3 w-3 rounded-full" style={{ background: STATUT_META[c.statut as StatutCheckpoint]?.couleur ?? '#8D99AE' }} />
           <p className="font-semibold">{c.libelle}</p>
-          <p className="text-sm text-gris-texte">{formatDate(c.date)} · {c.lieu}</p>
+          <p className="text-sm text-gris-texte">{formatDate(c.date, fuseau)} · {c.lieu}</p>
           {c.commentaire && <p className="text-sm">{c.commentaire}</p>}
         </li>
       ))}

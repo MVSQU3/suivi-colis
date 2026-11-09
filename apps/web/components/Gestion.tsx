@@ -5,7 +5,8 @@ import { api, ApiError } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Modal } from '@/components/Modal';
 import { messageErreur } from '@/components/CheckpointForm';
-import { telephoneValide } from '@/components/ClientForm';
+import { erreurTelephone, telephoneValide } from '@/components/ClientForm';
+import { useTenant } from '@/lib/role';
 
 export type Entite = 'clients' | 'colis' | 'lots';
 const lbl = 'mb-1 block text-sm font-semibold';
@@ -96,6 +97,7 @@ function Actions({ busy, onClose }: { busy: boolean; onClose: () => void }) {
 
 export interface ClientEdit { id: string; fullName: string; phone: string; email?: string | null; city?: string | null }
 export function ModifierClient({ client, onClose, onDone }: { client: ClientEdit; onClose: () => void; onDone: () => void }) {
+  const { paysCode } = useTenant();
   const [v, setV] = useState({ fullName: client.fullName, phone: client.phone, email: client.email ?? '', city: client.city ?? '' });
   const [err, setErr] = useState<Record<string, string>>({});
   const [existant, setExistant] = useState<{ id: string; fullName: string } | null>(null);
@@ -105,7 +107,7 @@ export function ModifierClient({ client, onClose, onDone }: { client: ClientEdit
     e.preventDefault(); setExistant(null);
     const er: Record<string, string> = {};
     if (v.fullName.trim().length < 2) er.fullName = 'Indiquez le nom du client (2 caractères minimum).';
-    if (!telephoneValide(v.phone)) er.phone = 'Numéro invalide : 10 chiffres attendus, avec ou sans +225.';
+    if (!telephoneValide(v.phone, paysCode)) er.phone = erreurTelephone(paysCode);
     if (v.email.trim() && !/^\S+@\S+\.\S+$/.test(v.email.trim())) er.email = 'Adresse e-mail invalide.';
     setErr(er); if (Object.keys(er).length) return;
     const body = diff({ fullName: client.fullName, phone: client.phone, email: client.email ?? '', city: client.city ?? '' },
@@ -116,7 +118,7 @@ export function ModifierClient({ client, onClose, onDone }: { client: ClientEdit
     try { await api(`/clients/${client.id}`, { method: 'PATCH', body: JSON.stringify(body) }); onDone(); }
     catch (e2) {
       if (e2 instanceof ApiError && e2.status === 409) { setExistant((e2.body as { clientExistant?: { id: string; fullName: string } })?.clientExistant ?? null); setErr({ phone: 'Ce numéro existe déjà.' }); }
-      else if (e2 instanceof ApiError && e2.status === 400 && /num/i.test(e2.message)) setErr({ phone: 'Numéro invalide : 10 chiffres attendus, avec ou sans +225.' });
+      else if (e2 instanceof ApiError && e2.status === 400 && /num/i.test(e2.message)) setErr({ phone: e2.message });
       else setErr({ global: messageErreur(e2) });
       setBusy(false);
     }

@@ -4,7 +4,7 @@ import { SkipThrottle } from '@nestjs/throttler';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from './prisma.service';
 import { JwtAuthGuard, Roles, TenantId } from './auth';
-import { normaliserTelephoneCI } from './phone';
+import { telephoneClient } from './phone';
 import { UpdateClientDto, UpdateColisDto, UpdateLotDto } from './dto';
 
 const vide = (o: object) => { if (!Object.values(o).some((v) => v !== undefined)) throw new BadRequestException('Rien a modifier'); };
@@ -38,8 +38,8 @@ export class GestionController {
     vide(dto); await this.client(tenantId, id);
     let phone: string | undefined;
     if (dto.phone !== undefined) {
-      phone = normaliserTelephoneCI(dto.phone) ?? undefined;
-      if (!phone) throw new BadRequestException({ statusCode: 400, message: ['Numéro invalide : 10 chiffres attendus, avec ou sans +225'], champ: 'phone' });
+      const tenant = await this.prisma.tenant.findUniqueOrThrow({ where: { id: tenantId }, select: { paysCode: true } });
+      phone = telephoneClient(dto.phone, tenant.paysCode);
       const existant = await this.prisma.client.findFirst({ where: { tenantId, phone, NOT: { id } }, select: { id: true, fullName: true } });
       if (existant) throw new ConflictException({ statusCode: 409, message: 'Ce numéro correspond déjà à un client', clientExistant: existant });
     }

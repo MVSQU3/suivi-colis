@@ -61,7 +61,7 @@ describe('8. Suivi public GET /public/suivi/:code', () => {
   });
   it('note interne posee via API sur un checkpoint de lot jamais exposee', async () => {
     const lot = (await p.lot.findFirstOrThrow({ where: { tenantId: I.tA, reference: 'MSKU7788123' } })).id;
-    const r = await api(app, t.ownerA).post(`/lots/${lot}/checkpoints`, { statut: 'ARRIVE_ABIDJAN', siteId: I.siteA, commentaire: 'SECRET-DOUANE-4242', lieu: 'quai interne 7' });
+    const r = await api(app, t.ownerA).post(`/lots/${lot}/checkpoints`, { statut: 'ARRIVE_DESTINATION', siteId: I.siteA, commentaire: 'SECRET-DOUANE-4242', lieu: 'quai interne 7' });
     expect(r.status).toBe(201);
     const s = JSON.stringify((await pub(lotCode)).body);
     expect(s).not.toContain('SECRET-DOUANE-4242'); expect(s).not.toContain('quai interne 7');

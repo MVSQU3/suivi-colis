@@ -162,7 +162,7 @@ describe('13. Edition, archivage, cloture, suppression', () => {
       await sleep(20);
       expect((await A().post(`/lots/${lot.id}/cloturer`)).status).toBe(200);
     });
-    it('nouveau checkpoint de lot -> 409', async () => { expect((await A().post(`/lots/${lot.id}/checkpoints`, { statut: 'ARRIVE_ABIDJAN', siteId: I.siteA })).status).toBe(409); });
+    it('nouveau checkpoint de lot -> 409', async () => { expect((await A().post(`/lots/${lot.id}/checkpoints`, { statut: 'ARRIVE_DESTINATION', siteId: I.siteA })).status).toBe(409); });
     it('affectation POST /lots/:id/colis -> 409', async () => { expect((await A().post(`/lots/${lot.id}/colis`, { colisIds: [other.id] })).status).toBe(409); });
     it('POST /colis avec ce lotId -> 409', async () => { expect((await A().post('/colis', { clientId, description: 'Vers lot clos', mode: 'MER', lotId: lot.id })).status).toBe(409); });
     it('checkpoints au niveau colis d un colis du lot clos acceptes (DISPONIBLE_AU_RETRAIT puis REMIS_AU_CLIENT -> 201)', async () => {
@@ -173,7 +173,7 @@ describe('13. Edition, archivage, cloture, suppression', () => {
     });
     it('rouvrir restaure checkpoint et affectation', async () => {
       expect((await A().post(`/lots/${lot.id}/rouvrir`)).status).toBe(200);
-      expect((await A().post(`/lots/${lot.id}/checkpoints`, { statut: 'ARRIVE_ABIDJAN', siteId: I.siteA })).status).toBe(201);
+      expect((await A().post(`/lots/${lot.id}/checkpoints`, { statut: 'ARRIVE_DESTINATION', siteId: I.siteA })).status).toBe(201);
       expect((await A().post(`/lots/${lot.id}/colis`, { colisIds: [other.id] })).status).toBe(201);
       expect((await A().post('/colis', { clientId, description: 'Lot rouvert', mode: 'MER', lotId: lot.id })).status).toBe(201);
     });

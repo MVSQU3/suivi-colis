@@ -4,7 +4,7 @@ import { StatutCheckpoint, ModeTransport } from '@prisma/client';
 export class LoginDto { @IsEmail() email: string; @IsString() @MinLength(1) password: string }
 export class CreateClientDto {
   @IsString() @MinLength(2) fullName: string;
-  /** Normalise cote serveur vers +225XXXXXXXXXX (voir phone.ts). */
+  /** Normalise cote serveur en E.164, pays du transitaire par defaut (voir phone.ts). */
   @IsString() phone: string;
   @IsOptional() @IsEmail() email?: string;
   @IsOptional() @IsString() city?: string;

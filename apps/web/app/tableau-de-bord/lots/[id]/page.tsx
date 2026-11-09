@@ -13,7 +13,7 @@ import { Badge } from '@/components/statut';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Pastille, Confirmer, Supprimer, ModifierClient, ModifierColis, ModifierLot } from '@/components/Gestion';
-import { useRole } from '@/lib/role';
+import { useRole, useTenant } from '@/lib/role';
 import { Pencil } from 'lucide-react';
 import { Archive } from 'lucide-react';
 import { Trash } from 'lucide-react';
@@ -41,6 +41,7 @@ export default function LotDetail({ params }: { params: { id: string } }) {
   const [actionErr, setActionErr] = useState<string | null>(null);
   const [dlg, setDlg] = useState<'modifier' | 'cloturer' | 'rouvrir' | 'supprimer' | null>(null);
   const { responsable } = useRole();
+  const { fuseau } = useTenant();
   const [ajoutColis, setAjoutColis] = useState(false);
   const [selAjout, setSelAjout] = useState<Set<string>>(new Set());
   const [ajoutBusy, setAjoutBusy] = useState(false);
@@ -109,7 +110,7 @@ export default function LotDetail({ params }: { params: { id: string } }) {
           <span className="flex h-12 w-12 items-center justify-center rounded-lg bg-fond">{d.mode === 'MER' ? <Ship className="h-6 w-6" aria-hidden /> : <Plane className="h-6 w-6" aria-hidden />}</span>
           <div className="min-w-0 flex-1">
             <h1 className="break-all text-xl font-semibold">{d.reference}</h1>
-            <p className="text-sm text-gris-texte">{d.mode === 'MER' ? 'Maritime' : 'Aérien'} · {n} colis{d.departPrevu ? ` · départ prévu le ${formatDate(d.departPrevu).slice(0, 10)}` : ''}</p>
+            <p className="text-sm text-gris-texte">{d.mode === 'MER' ? 'Maritime' : 'Aérien'} · {n} colis{d.departPrevu ? ` · départ prévu le ${formatDate(d.departPrevu, fuseau).slice(0, 10)}` : ''}</p>
             <div className="mt-2 flex flex-wrap gap-2">{cloture && <Pastille>Clôturé</Pastille>}{(actuel || !cloture) && <Badge statut={actuel} />}</div>
           </div>
           {!cloture && <div className="hidden sm:block">{boutonMaj}</div>}
@@ -123,7 +124,7 @@ export default function LotDetail({ params }: { params: { id: string } }) {
         </CardContent>
       </Card>
 
-      {cloture && <p className="rounded-md border-l-4 border-fonce bg-white px-4 py-3 text-sm font-semibold" role="note">Lot clôturé{d.clotureLe ? ` le ${formatDate(d.clotureLe).slice(0, 10)}` : ''} : mettez à jour les colis un par un.</p>}
+      {cloture && <p className="rounded-md border-l-4 border-fonce bg-white px-4 py-3 text-sm font-semibold" role="note">Lot clôturé{d.clotureLe ? ` le ${formatDate(d.clotureLe, fuseau).slice(0, 10)}` : ''} : mettez à jour les colis un par un.</p>}
       {dlg === 'modifier' && <ModifierLot lot={d} onClose={() => setDlg(null)} onDone={() => { setDlg(null); setOk('Lot modifié.'); void load(); }} />}
       {(dlg === 'cloturer' || dlg === 'rouvrir') && (
         <Confirmer titre={dlg === 'cloturer' ? `Clôturer le lot ${d.reference} ?` : `Rouvrir le lot ${d.reference} ?`}
@@ -179,7 +180,7 @@ export default function LotDetail({ params }: { params: { id: string } }) {
 
       <Card className="border-0">
         <CardHeader><CardTitle className="text-base">Historique du lot</CardTitle></CardHeader>
-        <CardContent><TimelineBO items={d.checkpoints} /></CardContent>
+        <CardContent><TimelineBO items={d.checkpoints} fuseau={fuseau} /></CardContent>
       </Card>
 
       {/* Bouton fixé en bas sur mobile */}

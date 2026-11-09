@@ -13,7 +13,7 @@
 ## 0. Contexte et contraintes internes
 
 - Un **Lot** = un conteneur maritime (référence : n° ISO 6346, B/L ou booking) ou un envoi aérien (LTA/AWB).
-- `StatutCheckpoint` : `RECU_ENTREPOT_CHINE`, `CHARGE_DANS_LOT`, `PARTI_DE_CHINE`, `ARRIVE_ABIDJAN`, `EN_DEDOUANEMENT`, `DISPONIBLE_AU_RETRAIT`, `REMIS_AU_CLIENT`, `EXCEPTION` (+ commentaire).
+- `StatutCheckpoint` : `RECU_ENTREPOT_CHINE`, `CHARGE_DANS_LOT`, `PARTI_DE_CHINE`, `ARRIVE_DESTINATION`, `EN_DEDOUANEMENT`, `DISPONIBLE_AU_RETRAIT`, `REMIS_AU_CLIENT`, `EXCEPTION` (+ commentaire).
 - Un checkpoint vise `lotId` et `siteId`, avec une date qui ne peut pas être dans le futur. Les événements « planifiés » ou « estimés » (ETA) ne deviennent donc **jamais** des checkpoints.
 - Remarque : `RECU_ENTREPOT_CHINE` et `CHARGE_DANS_LOT` (empotage/consolidation chez le transitaire) précèdent la prise en charge par le transporteur. Aucune source externe ne les fournit de façon fiable : ils restent **manuels**. De même, `EN_DEDOUANEMENT`, `DISPONIBLE_AU_RETRAIT` et `REMIS_AU_CLIENT` dépendent surtout du transitaire à Abidjan.
 
@@ -34,8 +34,8 @@
 | LOAD (Loaded) | POL Chine | ignoré (précurseur du départ) |
 | DEPA (Vessel departure) | POL Chine | `PARTI_DE_CHINE` |
 | ARRI / DISC / LOAD / DEPA | RTP (transbordement) | ignoré (stocké en brut et affiché comme info) |
-| ARRI (Arrival) | POD CIABJ | `ARRIVE_ABIDJAN` |
-| DISC (Discharge) | POD CIABJ | `ARRIVE_ABIDJAN` (si ARRI est absent) |
+| ARRI (Arrival) | POD CIABJ | `ARRIVE_DESTINATION` |
+| DISC (Discharge) | POD CIABJ | `ARRIVE_DESTINATION` (si ARRI est absent) |
 | INSP (inspection) | POD | `EN_DEDOUANEMENT` (à valider) |
 | GTOT laden (Gate out) | POD CIABJ | ignoré par défaut (sortie du port ≠ retrait client ; pourrait signaler la fin du dédouanement) |
 | GTIN empty (retour du vide) | destination | ignoré |
@@ -93,8 +93,8 @@
 | Loaded (POL) | Loaded | `vessel_loaded` | ignoré |
 | Vessel departure (POL) | Sailing | `vessel_departed` | `PARTI_DE_CHINE` |
 | Transshipment (arr./décharg./charg./dép.) | TS port details | `transshipment_arrived/discharged/loaded/departed` | ignoré (info) |
-| Arrival (POD Abidjan) | Arrived | `vessel_arrived` / `vessel_berthed` | `ARRIVE_ABIDJAN` |
-| Discharge (POD) | Discharged | `vessel_discharged` | `ARRIVE_ABIDJAN` (si absent) |
+| Arrival (POD Abidjan) | Arrived | `vessel_arrived` / `vessel_berthed` | `ARRIVE_DESTINATION` |
+| Discharge (POD) | Discharged | `vessel_discharged` | `ARRIVE_DESTINATION` (si absent) |
 | Not released | Not Released | — | ignoré (éventuellement `EN_DEDOUANEMENT`, à valider avec un transitaire) |
 | Gate out (POD) | Gate out | `full_out` | ignoré par défaut / option `DISPONIBLE_AU_RETRAIT` désactivée |
 | Changement d'ETA | — | `estimated.*` | ignoré (mise à jour de l'ETA du lot, sans checkpoint) |
@@ -110,7 +110,7 @@
 | **aisstream.io** | Gratuit, WebSocket `wss://stream.aisstream.io/v0/stream`, abonnement par bounding box — https://aisstream.io/documentation ; réseau terrestre de bénévoles, sans satellite — https://aisstream.io/coverage | WebSocket (push) | **S** (mais couverture en haute mer et en Afrique incertaine) |
 
 - **Format** : messages AIS (position, MMSI/IMO), **pas d'événements conteneur**. Il n'y a aucun code DCSA ou EDIFACT.
-- **Mapping** : l'AIS ne donne ni le chargement d'un conteneur précis ni sa sortie du port. Il peut seulement **corroborer** `PARTI_DE_CHINE`/`ARRIVE_ABIDJAN` (navire entrant dans une zone géographique autour de CIABJ). Proposition : usage pour l'affichage carte et l'ETA, **jamais** pour créer seul un checkpoint. Plusieurs agrégateurs fournissent déjà la position (ShipsGo : https://shipsgo.com/ocean/container-tracking-api ; SeaRates option `ais` : https://docs.searates.com/reference/tracking/tracking-by-container ; Terminal49 : https://terminal49.com/docs/coverage/home). Une intégration AIS dédiée n'est donc **pas nécessaire au MVP**.
+- **Mapping** : l'AIS ne donne ni le chargement d'un conteneur précis ni sa sortie du port. Il peut seulement **corroborer** `PARTI_DE_CHINE`/`ARRIVE_DESTINATION` (navire entrant dans une zone géographique autour de CIABJ). Proposition : usage pour l'affichage carte et l'ETA, **jamais** pour créer seul un checkpoint. Plusieurs agrégateurs fournissent déjà la position (ShipsGo : https://shipsgo.com/ocean/container-tracking-api ; SeaRates option `ais` : https://docs.searates.com/reference/tracking/tracking-by-container ; Terminal49 : https://terminal49.com/docs/coverage/home). Une intégration AIS dédiée n'est donc **pas nécessaire au MVP**.
 
 ## 5. Suivi aérien (LTA/AWB)
 
@@ -136,7 +136,7 @@ Le fait que ces compagnies desservent ABJ vient de l'énoncé : non vérifié ic
 | DEP (origine Chine) | Départ | `PARTI_DE_CHINE` |
 | ARR / RCF / DEP en escale (ADD, DXB, CDG, IST…) | Transit | ignoré (transbordement) |
 | TFD / RCT | Transfert vers / depuis une autre compagnie | ignoré |
-| ARR / RCF à ABJ | Arrivé | `ARRIVE_ABIDJAN` |
+| ARR / RCF à ABJ | Arrivé | `ARRIVE_DESTINATION` |
 | NFD / AWD | Destinataire notifié / documents remis | ignoré par défaut (option `EN_DEDOUANEMENT`) |
 | TGC | Sous contrôle douanier | `EN_DEDOUANEMENT` |
 | CCD | Dédouané | ignoré (pas de statut dédié) |
@@ -151,7 +151,7 @@ Le fait que ces compagnies desservent ABJ vient de l'énoncé : non vérifié ic
 
 **Ingestion.** À la création ou mise à jour de la référence, un service NestJS crée l'abonnement chez le fournisseur. Un contrôleur `POST /webhooks/suivi/:fournisseur` vérifie la signature HMAC, stocke le payload, répond 2xx immédiatement et traite en asynchrone (queue BullMQ ou job Postgres). Un cron de rattrapage interroge en polling les abonnements muets depuis plus de 24 h. **Idempotence** : contrainte unique `(fournisseur, idEvenementExterne)`. À défaut d'identifiant externe, un hash `(lotId, code, unLocode, dateEvenement)`, avec `INSERT … ON CONFLICT DO NOTHING`. Les corrections (les événements DCSA peuvent être modifiés ou supprimés, cf. le document MSC) mettent à jour le brut, sans dupliquer le checkpoint.
 
-**Règle de progression.** Le mapping convertit un événement `ACT` en statut candidat. On ne crée un checkpoint que si le statut candidat est **strictement supérieur** au statut courant du lot dans l'ordre de l'enum (EXCEPTION mise à part), et si `dateEvenement <= now()`. Les événements PLN/EST et ceux à date future sont rejetés comme checkpoints et servent seulement à mettre à jour l'ETA. **Transbordement** : on ne retient que les événements dont le rôle est POL (et UN/LOCODE en Chine, `CN*`) pour `PARTI_DE_CHINE`, et POD = `CIABJ` (ou ABJ en IATA) pour `ARRIVE_ABIDJAN`. Les événements RTP (Port Kelang, Lomé, Tanger Med, Algésiras…) ou en escale aérienne restent dans `EvenementBrut`. Le premier `DEPA` en Chine fait foi, même s'il y a d'autres départs en transbordement.
+**Règle de progression.** Le mapping convertit un événement `ACT` en statut candidat. On ne crée un checkpoint que si le statut candidat est **strictement supérieur** au statut courant du lot dans l'ordre de l'enum (EXCEPTION mise à part), et si `dateEvenement <= now()`. Les événements PLN/EST et ceux à date future sont rejetés comme checkpoints et servent seulement à mettre à jour l'ETA. **Transbordement** : on ne retient que les événements dont le rôle est POL (et UN/LOCODE en Chine, `CN*`) pour `PARTI_DE_CHINE`, et POD = `CIABJ` (ou ABJ en IATA) pour `ARRIVE_DESTINATION`. Les événements RTP (Port Kelang, Lomé, Tanger Med, Algésiras…) ou en escale aérienne restent dans `EvenementBrut`. Le premier `DEPA` en Chine fait foi, même s'il y a d'autres départs en transbordement.
 
 **Sites.** Ajouter `unLocode` (et `codeIata` pour les aéroports) sur `Site`, avec unicité `(tenantId, unLocode)`. Lors du mapping, chercher le site du tenant par code (ex. CNNSA Nansha, CNSHA Shanghai, CNNGB Ningbo, CNYTN Yantian, CIABJ, CAN/ABJ). S'il manque, le créer automatiquement en le marquant `creeAutomatiquement=true` pour revue, ou le rattacher à un site générique par pays. Terminal49 et Vizion fournissent déjà l'UN/LOCODE (https://terminal49.com/docs/coverage/terminals ; https://docs.vizionapi.com/docs/dcsa-milestones).
 

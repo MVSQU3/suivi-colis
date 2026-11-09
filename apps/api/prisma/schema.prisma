@@ -22,7 +22,7 @@ enum StatutCheckpoint {
   RECU_ENTREPOT_CHINE
   CHARGE_DANS_LOT
   PARTI_DE_CHINE
-  ARRIVE_ABIDJAN
+  ARRIVE_DESTINATION
   EN_DEDOUANEMENT
   DISPONIBLE_AU_RETRAIT
   REMIS_AU_CLIENT
@@ -35,6 +35,14 @@ model Tenant {
   slug         String   @unique
   phone        String?
   primaryColor String?  @default("#F77F00")
+  /// Pays du transitaire (ISO 3166-1 alpha-2) : pays par defaut des numeros saisis sans indicatif.
+  paysCode     String   @default("CI")
+  /// Devise d'affichage (ISO 4217)
+  devise       String   @default("XOF")
+  /// Fuseau IANA des dates affichees (stockage toujours en UTC)
+  fuseau       String   @default("Africa/Abidjan")
+  /// Langue de l'interface client (seul « fr » est traduit pour l'instant)
+  langue       String   @default("fr")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   users        User[]

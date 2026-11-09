@@ -6,6 +6,7 @@ import type { Request, Response } from 'express';
 import { PrismaService } from './prisma.service';
 import { ColisService } from './colis.service';
 import { JwtAuthGuard, TenantId } from './auth';
+import { transitairePublic } from './controllers';
 
 const LIEN_TTL_MS = 48 * 3600_000;
 const SESSION_TTL_MS = 30 * 24 * 3600_000;
@@ -58,7 +59,7 @@ export class AccesClientController {
     const l = await this.prisma.lienAcces.findUnique({ where: { tokenHash: hash(t) }, include: { client: { include: { tenant: true } } } });
     if (!l) return { valide: false, transitaire: null };
     const valide = !l.usedAt && !l.revokedAt && l.expiresAt > new Date() && !l.client.archivedAt;
-    return { valide, transitaire: { nom: l.client.tenant.name, telephone: l.client.tenant.phone } };
+    return { valide, transitaire: transitairePublic(l.client.tenant) };
   }
 
   /** Consomme le jeton de facon atomique et ouvre une session de 30 jours. */
@@ -96,7 +97,7 @@ export class AccesClientController {
       };
     }));
     const t = sess.client.tenant;
-    return { client: { nom: sess.client.fullName }, transitaire: { nom: t.name, telephone: t.phone, couleur: t.primaryColor }, colis };
+    return { client: { nom: sess.client.fullName }, transitaire: transitairePublic(t), colis };
   }
 
   @SkipThrottle() @Post('deconnexion') @HttpCode(200) async deconnexion(@Req() req: Request, @Res({ passthrough: true }) res: Response) {

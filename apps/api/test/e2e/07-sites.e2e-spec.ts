@@ -13,8 +13,8 @@ describe('7. Sites (lieux publics)', () => {
   const A = () => api(app, t.ownerA);
 
   it('siteId d un autre tenant et siteId inexistant -> meme 404 (meme corps)', async () => {
-    const other = await A().post(`/colis/${C.id}/checkpoints`, { statut: 'ARRIVE_ABIDJAN', siteId: I.siteB });
-    const none = await A().post(`/colis/${C.id}/checkpoints`, { statut: 'ARRIVE_ABIDJAN', siteId: 'cl_site_inexistant_000' });
+    const other = await A().post(`/colis/${C.id}/checkpoints`, { statut: 'ARRIVE_DESTINATION', siteId: I.siteB });
+    const none = await A().post(`/colis/${C.id}/checkpoints`, { statut: 'ARRIVE_DESTINATION', siteId: 'cl_site_inexistant_000' });
     expect(other.status).toBe(404); expect(none.status).toBe(404);
     expect(other.body).toEqual(none.body);
   });
@@ -22,10 +22,10 @@ describe('7. Sites (lieux publics)', () => {
     const s = await A().post('/sites', { nom: 'Site Bientot Ferme' });
     expect(s.status).toBe(201);
     expect((await A().patch(`/sites/${s.body.id}`, { actif: false })).status).toBe(200);
-    expect((await A().post(`/colis/${C.id}/checkpoints`, { statut: 'ARRIVE_ABIDJAN', siteId: s.body.id })).status).toBe(400);
+    expect((await A().post(`/colis/${C.id}/checkpoints`, { statut: 'ARRIVE_DESTINATION', siteId: s.body.id })).status).toBe(400);
   });
   it('siteId manquant -> 400', async () => {
-    expect((await A().post(`/colis/${C.id}/checkpoints`, { statut: 'ARRIVE_ABIDJAN', lieu: 'texte libre' })).status).toBe(400);
+    expect((await A().post(`/colis/${C.id}/checkpoints`, { statut: 'ARRIVE_DESTINATION', lieu: 'texte libre' })).status).toBe(400);
   });
   it.each(['depot yopougon', '  Depot Yopougon  ', 'DEPOT YOPOUGON'])('nom en double (casse/espaces) %p -> 409', async (nom) => {
     await A().post('/sites', { nom: 'Depot Yopougon' });
@@ -40,7 +40,7 @@ describe('7. Sites (lieux publics)', () => {
   });
   it('renommer un site change le lieu affiche publiquement sur les anciens checkpoints', async () => {
     const s = await A().post('/sites', { nom: 'Hangar Treichville Zone 3' });
-    const cp = await A().post(`/colis/${C.id}/checkpoints`, { statut: 'ARRIVE_ABIDJAN', siteId: s.body.id, lieu: 'note interne quai 12' });
+    const cp = await A().post(`/colis/${C.id}/checkpoints`, { statut: 'ARRIVE_DESTINATION', siteId: s.body.id, lieu: 'note interne quai 12' });
     expect(cp.status).toBe(201);
     const before = await api(app).get(`/public/suivi/${C.trackingCode}`);
     expect(before.body.checkpoints.map((c: { lieu: string }) => c.lieu)).toContain('Hangar Treichville Zone 3');

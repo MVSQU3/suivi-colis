@@ -13,7 +13,7 @@ import { Badge } from '@/components/statut';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Pastille, Confirmer, Supprimer, ModifierClient, ModifierColis, ModifierLot } from '@/components/Gestion';
-import { useRole } from '@/lib/role';
+import { useRole, useTenant } from '@/lib/role';
 import { Modal } from '@/components/Modal';
 import { PackagePlus } from 'lucide-react';
 import { ArrowRightLeft } from 'lucide-react';
@@ -37,6 +37,7 @@ export default function ColisDetail({ params }: { params: { id: string } }) {
   const [form, setForm] = useState<'etape' | 'exception' | null>(null);
   const [dlg, setDlg] = useState<'modifier' | 'archiver' | 'desarchiver' | 'supprimer' | null>(null);
   const { responsable } = useRole();
+  const { fuseau } = useTenant();
   const [choixLot, setChoixLot] = useState(false);
   const [lots, setLots] = useState<{ id: string; reference: string; mode: string; clotureLe?: string | null }[] | null>(null);
   const [cible, setCible] = useState('');
@@ -129,7 +130,7 @@ export default function ColisDetail({ params }: { params: { id: string } }) {
       <div className="grid gap-5 lg:grid-cols-3">
         <Card className="border-0 lg:col-span-2">
           <CardHeader><CardTitle className="text-base">Historique</CardTitle></CardHeader>
-          <CardContent><TimelineBO items={d.historique} /></CardContent>
+          <CardContent><TimelineBO items={d.historique} fuseau={fuseau} /></CardContent>
         </Card>
         <Card className="border-0">
           <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
@@ -144,7 +145,7 @@ export default function ColisDetail({ params }: { params: { id: string } }) {
                 {affs.map((a) => (
                   <li key={a.id} className="rounded-md bg-fond p-3">
                     <Link href={`/tableau-de-bord/lots/${a.lot.id}`} className="font-semibold hover:underline">{a.lot.reference}</Link>
-                    <p className="text-xs text-gris-texte">Depuis le {formatDate(a.debut)}{a.fin ? ` · jusqu’au ${formatDate(a.fin)}` : ' · en cours'}</p>
+                    <p className="text-xs text-gris-texte">Depuis le {formatDate(a.debut, fuseau)}{a.fin ? ` · jusqu’au ${formatDate(a.fin, fuseau)}` : ' · en cours'}</p>
                   </li>
                 ))}
               </ul>

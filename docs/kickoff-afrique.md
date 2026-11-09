@@ -69,7 +69,25 @@ Le code suppose la Côte d'Ivoire à plusieurs endroits. Il faut les généralis
 
 **Point de vigilance sur le renommage du statut.** `ALTER TYPE … RENAME VALUE` est sûr côté Postgres, mais le code `ARRIVE_ABIDJAN` est exposé par l'API publique (`statutActuel`, `checkpoints[].statut`). Il faut donc renommer dans une seule version de l'API et du web, ou garder l'ancien code en alias le temps d'une version.
 
-**Modèle de données à prévoir (migrations additives) :**
+### Réalisé en phase 1 (09/11/2026)
+
+| Point | Ce qui a été fait |
+|---|---|
+| Téléphone | Validation par `libphonenumber-js` dans `packages/shared` (même règle côté API et web). Un numéro sans indicatif est lu dans le pays du transitaire. Un numéro avec indicatif est accepté s'il est africain. Les numéros hors Afrique (+33…) restent refusés. Validation par longueur, comme avant, pour ne pas rejeter un préfixe récent. |
+| Statut | `ARRIVE_ABIDJAN` renommé en `ARRIVE_DESTINATION` (« Arrivé dans le pays de destination ») par migration. Les données existantes sont converties sur place. Renommage fait en une seule version, **sans alias** : rien n'était encore en production. |
+| Pays du transitaire | `Tenant.paysCode`, `devise`, `fuseau`, `langue`, à la valeur de la Côte d'Ivoire par défaut. Écran API `GET/PATCH /parametres` (modification réservée à OWNER) : changer de pays reprend sa devise et son fuseau. Référentiel des 54 pays dans `packages/shared/src/pays.ts`. |
+| Dates | Affichées dans le fuseau du transitaire (back-office, `/suivi`, « Mes colis »). L'API publique expose `transitaire.pays` et `transitaire.fuseau`. |
+| Devise | `formatMontant(n, devise)` : « FCFA » pour XOF et XAF, code ISO sinon. |
+| Sites par défaut | Sites de Chine pour tous, et sites d'arrivée pour la Côte d'Ivoire et le Sénégal. Ailleurs, le transitaire crée les siens. |
+| Démo | Troisième transitaire `owner@dakar-fret.local` (Sénégal, +221, fuseau de Dakar), avec un lot arrivé au port de Dakar. |
+
+**Écarts par rapport au plan, volontaires :**
+- **Pas de `Client.paysCode`** : le pays du client se déduit de son numéro E.164 (`paysDuTelephone`). On ajoutera la colonne si un besoin apparaît (tarif SMS par pays, par exemple).
+- **Pas de traduction ni de bibliothèque i18n** : le français reste seul tant qu'aucun pays non francophone n'est ouvert. Le champ `Tenant.langue` est prêt, mais il n'est pas modifiable.
+- **Pas de référentiel UN/LOCODE et IATA** des ports et aéroports : seulement des sites par défaut pour la Côte d'Ivoire et le Sénégal.
+- **Pas d'écran web « Paramètres »** : le pays se règle par l'API `PATCH /parametres` en attendant.
+
+**Modèle de données envisagé au départ (pour mémoire) :**
 - `Tenant` : `paysCode` (ISO 3166-1, par exemple `CI`, `SN`, `NG`), `devise`, `fuseau`, `langue`.
 - `Client` : `paysCode` (un client peut habiter un autre pays que son transitaire), `langue`, préférences de notification (section 6).
 - Le téléphone reste unique par tenant, mais au format E.164. Il faudra reprendre les numéros existants : préfixe `+225` déjà présent, donc une reprise triviale.
@@ -151,7 +169,7 @@ Effort : S = quelques jours, M = 1 à 3 semaines, L = plus d'un mois. Les phases
 | Phase | Contenu | Effort | Critère de fin |
 |---|---|---|---|
 | **0. Mise en production** | Hébergement sur **OVHcloud** (API, web, Postgres managé ou sur l'instance), domaine et HTTPS, sauvegardes automatiques, supervision, CI sur GitHub (tests unitaires et e2e à chaque push) | M | Un transitaire pilote utilise la plateforme en ligne pendant 2 semaines sans incident bloquant |
-| **1. Fondations multi-pays** | Téléphone E.164 par pays ; `paysCode`, devise, fuseau et langue sur le tenant et le client ; statut `ARRIVE_DESTINATION` ; référentiel ports et aéroports ; structure i18n en place, avec le **français seul** tant qu'aucun pays anglophone n'est ouvert | M | Un transitaire fictif d'un autre pays francophone (par exemple Sénégal, +221, XOF) passe toute la suite e2e et le parcours démo, sans régression en Côte d'Ivoire |
+| **1. Fondations multi-pays** ✅ (09/11/2026, voir fin de section 5) | Téléphone E.164 par pays ; `paysCode`, devise, fuseau et langue sur le tenant et le client ; statut `ARRIVE_DESTINATION` ; référentiel ports et aéroports ; structure i18n en place, avec le **français seul** tant qu'aucun pays anglophone n'est ouvert | M | Un transitaire fictif d'un autre pays francophone (par exemple Sénégal, +221, XOF) passe toute la suite e2e et le parcours démo, sans régression en Côte d'Ivoire |
 | **2. Notifications** | Outbox et worker ; consentement et préférences du client ; WhatsApp sur un numéro unique de la plateforme (modèles approuvés) ; repli SMS (fournisseur couvrant la Côte d'Ivoire) ; coût enregistré par envoi et par tenant ; regroupement par lot ; fenêtre silencieuse ; délai d'annulation ; journal et écran « Notifications » pour le transitaire | L | Une mise à jour de lot de 500 colis notifie chaque client une seule fois en moins de 10 minutes (hypothèse de cible), avec un taux d'échec suivi |
 | **3. Application client (PWA)** | Manifest, service worker, installation depuis « Mes colis », cache hors ligne, Web Push | M | Installation depuis un Android d'entrée de gamme en 3G, push reçu au checkpoint suivant |
 | **4. Suivi automatique des lots** | Intégration du finaliste ShipsGo ou Vizion, après le test des 10 à 20 vraies références prévu dans `etude-suivi-automatique.md` | M | Les départs et arrivées d'un lot réel se mettent à jour sans saisie |

@@ -20,9 +20,9 @@ describe('2. Isolation des tenants (B ne voit/modifie rien de A)', () => {
 
   const B = () => api(app, t.ownerB);
   it('colis : GET 404', async () => { expect((await B().get(`/colis/${colisA}`)).status).toBe(404); });
-  it('colis : POST checkpoint 404', async () => { expect((await B().post(`/colis/${colisA}/checkpoints`, { statut: 'ARRIVE_ABIDJAN', siteId: I.siteB })).status).toBe(404); });
+  it('colis : POST checkpoint 404', async () => { expect((await B().post(`/colis/${colisA}/checkpoints`, { statut: 'ARRIVE_DESTINATION', siteId: I.siteB })).status).toBe(404); });
   it('lot : GET 404', async () => { expect((await B().get(`/lots/${lotA}`)).status).toBe(404); });
-  it('lot : POST checkpoint 404', async () => { expect((await B().post(`/lots/${lotA}/checkpoints`, { statut: 'ARRIVE_ABIDJAN', siteId: I.siteB })).status).toBe(404); });
+  it('lot : POST checkpoint 404', async () => { expect((await B().post(`/lots/${lotA}/checkpoints`, { statut: 'ARRIVE_DESTINATION', siteId: I.siteB })).status).toBe(404); });
   it('lot : POST affectation de colis 404', async () => { expect((await B().post(`/lots/${lotA}/colis`, { colisIds: [colisB] })).status).toBe(404); });
   it('lot : B ne peut pas affecter un colis de A a son propre lot (404)', async () => {
     const lotB = (await p.lot.findFirstOrThrow({ where: { tenantId: I.tB } })).id;
